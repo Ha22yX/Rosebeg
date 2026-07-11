@@ -66,8 +66,8 @@ export function SignalNavigation() {
       });
       gsap.fromTo(
         panel,
-        { x: "104%", borderTopLeftRadius: 34, borderBottomLeftRadius: 34 },
-        { x: "0%", duration: 0.72, ease: "expo.out", borderTopLeftRadius: 18, borderBottomLeftRadius: 18 }
+        { x: "104%", borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
+        { x: "0%", duration: 0.72, ease: "expo.out", borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
       );
       gsap.fromTo(
         items,
