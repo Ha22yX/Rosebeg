@@ -43,8 +43,19 @@ test("anchors the shared Where I prefix before the yellow action word appears", 
 test("uses the shader background and removes the old cable instrument", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-shader-background]")).toBeVisible();
+  await expect(page.locator("[data-shader-background] canvas")).toBeVisible();
+  await expect(page.locator(".shader-shade")).toHaveCount(0);
   await expect(page.locator("[data-cable-system]")).toHaveCount(0);
   await expect(page.getByText("0.78A")).toHaveCount(0);
+});
+
+test("moves the shader background slowly upward while scrolling", async ({ page }) => {
+  await page.goto("/");
+  const canvas = page.locator("[data-shader-background] canvas");
+  await expect(canvas).toHaveAttribute("data-parallax-offset", /[-0-9.]+/);
+  const before = Number(await canvas.getAttribute("data-parallax-offset"));
+  await page.evaluate(() => window.scrollTo({ top: 1400, behavior: "instant" }));
+  await expect.poll(async () => Number(await canvas.getAttribute("data-parallax-offset"))).toBeGreaterThan(before + 0.05);
 });
 
 test("keeps the hero as an unframed ASCII-only title stage", async ({ page }) => {
