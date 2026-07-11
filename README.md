@@ -2,7 +2,15 @@
 
 Rosebeg is the personal website and digital portfolio of Ha22yX.
 
-This first version is a single-page signal-field homepage built around a continuous electric cable system. The cable begins beneath the Rosebeg title, shifts through the identity, works, social, and contact sections, and acts as the main visual object of the page.
+This version is a single-page sci-fi electronic portfolio homepage built with React, TypeScript, Tailwind CSS, Framer Motion, and ShaderGradient. The hero is centered on a typewriter manifesto:
+
+```text
+This is Rosebeg.
+I am here to create.
+I am here to explore.
+I am here to redefine.
+I am Ha22yX.
+```
 
 ## Local Development
 
@@ -20,6 +28,7 @@ npm run build
 
 ## Edit Points
 
-- `index.html` contains the homepage copy, links, and inline cable SVG.
-- `src/styles.css` contains the visual system, responsive layout, and motion.
-- `src/main.js` contains the small reveal-on-scroll behavior.
+- `src/App.tsx` contains homepage content, links, and section structure.
+- `components/ui/typewriter.tsx` contains the shadcn-style Typewriter component.
+- `src/components/ShaderBackground.tsx` contains the global ShaderGradient background.
+- `src/styles.css` contains the visual system and responsive layout.
