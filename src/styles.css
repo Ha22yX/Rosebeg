@@ -291,7 +291,7 @@ a {
   color: var(--bone);
   text-decoration: none;
   text-transform: uppercase;
-  opacity: 0;
+  opacity: 1;
 }
 
 .staggered-menu-link-text {
@@ -304,6 +304,23 @@ a {
     color 180ms ease,
     transform 180ms ease,
     text-shadow 180ms ease;
+}
+
+.shuffle-text {
+  display: inline-flex;
+  white-space: pre;
+}
+
+.shuffle-char {
+  display: inline-block;
+  min-width: 0.64em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transform: translateZ(0);
+}
+
+.shuffle-char.is-space {
+  min-width: 0.42em;
 }
 
 .staggered-menu-number {

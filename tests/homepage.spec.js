@@ -114,6 +114,7 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await expect(page.getByRole("menuitem", { name: /projects/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
   await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
+  await expect(page.locator("[data-shuffle-text='PROJECTS'] [data-shuffle-char]")).toHaveCount(8);
 
   await page.getByRole("menuitem", { name: /projects/i }).click();
   await expect(page).toHaveURL(/#works$/);

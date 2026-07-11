@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 
+import { Shuffle } from "@/components/ui/shuffle";
+
 const menuItems = [
   { label: "HOME", ariaLabel: "Home", link: "#hero" },
   { label: "ABOUT", ariaLabel: "About", link: "#who" },
@@ -25,9 +27,9 @@ export function SignalNavigation({
   onOpenChange,
 }: SignalNavigationProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const [shuffleKey, setShuffleKey] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<HTMLAnchorElement[]>([]);
   const socialRefs = useRef<HTMLAnchorElement[]>([]);
   const isOpen = controlledIsOpen ?? internalIsOpen;
 
@@ -62,35 +64,21 @@ export function SignalNavigation({
   useEffect(() => {
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
-    const items = itemRefs.current.filter(Boolean);
     const socials = socialRefs.current.filter(Boolean);
 
     if (!panel || !backdrop) {
       return;
     }
 
-    gsap.killTweensOf([backdrop, ...items, ...socials]);
+    gsap.killTweensOf([backdrop, ...socials]);
 
     if (isOpen) {
+      setShuffleKey((value) => value + 1);
       gsap.to(backdrop, {
         autoAlpha: 1,
         duration: 0.72,
         ease: "power2.out",
       });
-      gsap.fromTo(
-        items,
-        { x: 74, y: 28, autoAlpha: 0, rotate: 2 },
-        {
-          x: 0,
-          y: 0,
-          autoAlpha: 1,
-          rotate: 0,
-          duration: 0.76,
-          stagger: 0.075,
-          delay: 0.16,
-          ease: "power4.out",
-        }
-      );
       gsap.fromTo(
         socials,
         { y: 18, autoAlpha: 0 },
@@ -149,13 +137,25 @@ export function SignalNavigation({
               className="staggered-menu-link"
               key={item.label}
               onClick={closeMenu}
-              ref={(element) => {
-                if (element) {
-                  itemRefs.current[index] = element;
-                }
-              }}
             >
-              <span className="staggered-menu-link-text">{item.label}</span>
+              <span className="staggered-menu-link-text">
+                <Shuffle
+                  text={item.label}
+                  shuffleDirection="right"
+                  duration={0.35}
+                  animationMode="evenodd"
+                  shuffleTimes={1}
+                  ease="power3.out"
+                  stagger={0.03}
+                  threshold={0.1}
+                  triggerOnce={true}
+                  triggerOnHover
+                  respectReducedMotion={true}
+                  loop={false}
+                  loopDelay={0}
+                  activeKey={`${shuffleKey}-${item.label}`}
+                />
+              </span>
               <span className="staggered-menu-number">{String(index + 1).padStart(2, "0")}</span>
             </a>
           ))}
