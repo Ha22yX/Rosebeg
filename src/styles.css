@@ -701,21 +701,24 @@ a {
 }
 
 .photography-panel {
-  width: min(1760px, calc(100% - 24px));
+  width: 100vw;
+  max-width: none;
   min-height: 940px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   padding-block: 80px;
 }
 
 .infinite-menu {
   position: relative;
   --infinite-menu-edge-mask: radial-gradient(
-    ellipse 76% 58% at center,
+    ellipse 88% 62% at center,
     #000 0%,
-    #000 38%,
-    rgb(0 0 0 / 0.72) 52%,
-    rgb(0 0 0 / 0.28) 66%,
-    rgb(0 0 0 / 0.08) 76%,
-    transparent 88%
+    #000 44%,
+    rgb(0 0 0 / 0.72) 60%,
+    rgb(0 0 0 / 0.28) 76%,
+    rgb(0 0 0 / 0.08) 86%,
+    transparent 96%
   );
   width: 100%;
   height: clamp(720px, 82vh, 920px);
@@ -758,21 +761,21 @@ a {
 
 .face-title {
   position: absolute;
-  left: clamp(42px, 7vw, 140px);
+  left: 50%;
   top: 50%;
   z-index: 2;
-  max-width: min(360px, 24vw);
+  max-width: min(320px, 24vw);
   user-select: none;
   color: var(--bone);
   font-size: clamp(2.2rem, 4vw, 3.4rem);
   font-weight: 950;
   line-height: 0.92;
-  transform: translateY(-50%);
+  transform: translate(calc(-100% - clamp(280px, 17vw, 348px)), -50%);
 }
 
 .face-title.active {
   opacity: 1;
-  transform: translateY(-50%);
+  transform: translate(calc(-100% - clamp(280px, 17vw, 348px)), -50%);
   pointer-events: none;
   transition: 0.5s ease;
 }
@@ -785,28 +788,28 @@ a {
 
 .face-description {
   position: absolute;
-  right: clamp(38px, 8vw, 150px);
+  left: 50%;
   top: 50%;
   z-index: 2;
-  max-width: min(220px, 16vw);
+  max-width: min(240px, 18vw);
   user-select: none;
   color: rgb(243 238 230 / 0.84);
   font-size: clamp(1rem, 1.35vw, 1.25rem);
   font-weight: 760;
   line-height: 1.14;
-  transform: translateY(-50%);
+  transform: translate(clamp(300px, 18vw, 380px), -50%);
 }
 
 .face-description.active {
   opacity: 1;
-  transform: translateY(-50%);
+  transform: translate(clamp(300px, 18vw, 380px), -50%);
   pointer-events: none;
   transition: 0.5s ease;
 }
 
 .face-description.inactive {
   opacity: 0;
-  transform: translate(-20%, -50%);
+  transform: translate(calc(clamp(300px, 18vw, 380px) + 20px), -50%);
   pointer-events: none;
   transition: 0.1s ease;
 }
@@ -1035,6 +1038,7 @@ a {
   .photography-panel {
     width: min(100% - 28px, var(--max));
     min-height: 680px;
+    margin-inline: auto;
     padding-block: 92px;
   }
 

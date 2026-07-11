@@ -306,6 +306,28 @@ test("exposes photography menu items and social placeholders", async ({ page }) 
   }
 });
 
+test("widens the photography stage without scaling the focused content", async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1080 });
+  await page.goto("/");
+  const canvas = page.locator("#infinite-grid-menu-canvas");
+  const title = page.locator(".face-title.active");
+  const description = page.locator(".face-description.active");
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  const titleBox = await title.boundingBox();
+  const descriptionBox = await description.boundingBox();
+  expect(box).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(descriptionBox).not.toBeNull();
+
+  expect(box.width).toBeGreaterThan(2000);
+  expect(box.height).toBeLessThanOrEqual(920);
+  expect(titleBox.x).toBeGreaterThan(300);
+  expect(titleBox.x + titleBox.width).toBeLessThan(box.width / 2 - 330);
+  expect(descriptionBox.x).toBeGreaterThan(box.width / 2 + 260);
+  expect(descriptionBox.x).toBeLessThan(box.width - 420);
+});
+
 test("turns the photography menu as a sphere while dragging and restores on release", async ({ page }) => {
   await page.goto("/");
   const menu = page.locator("[data-infinite-menu]");
