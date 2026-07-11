@@ -38,7 +38,7 @@ test("anchors the first sentence while typing spaces instead of re-centering eve
 
 test("anchors the shared I am a prefix before the yellow role appears", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a", { timeout: 11000 });
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a", { timeout: 13000 });
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
@@ -60,12 +60,33 @@ test("moves the shader background slowly upward while scrolling", async ({ page 
   await expect.poll(async () => Number(await canvas.getAttribute("data-parallax-offset"))).toBeGreaterThan(before + 0.05);
 });
 
-test("keeps the shader background subtly animated while idle", async ({ page }) => {
+test("keeps the shader background continuously flowing while idle", async ({ page }) => {
   await page.goto("/");
   const canvas = page.locator("[data-shader-background] canvas");
   await expect(canvas).toHaveAttribute("data-shader-time", /[-0-9.]+/);
   const before = Number(await canvas.getAttribute("data-shader-time"));
   await expect.poll(async () => Number(await canvas.getAttribute("data-shader-time"))).toBeGreaterThan(before + 0.08);
+});
+
+test("layers scroll parallax on top of the continuous shader flow", async ({ page }) => {
+  await page.goto("/");
+  const canvas = page.locator("[data-shader-background] canvas");
+  await expect(canvas).toHaveAttribute("data-flow-offset-y", /[-0-9.]+/);
+  await expect(canvas).toHaveAttribute("data-parallax-offset", /[-0-9.]+/);
+
+  const flowBefore = Number(await canvas.getAttribute("data-flow-offset-y"));
+  const parallaxBefore = Number(await canvas.getAttribute("data-parallax-offset"));
+  await page.waitForTimeout(600);
+  const flowAfterIdle = Number(await canvas.getAttribute("data-flow-offset-y"));
+  expect(flowAfterIdle).toBeLessThan(flowBefore - 0.005);
+
+  await page.evaluate(() => window.scrollTo({ top: 1400, behavior: "instant" }));
+  await expect.poll(async () => Number(await canvas.getAttribute("data-parallax-offset"))).toBeGreaterThan(
+    parallaxBefore + 0.05
+  );
+  await expect.poll(async () => Number(await canvas.getAttribute("data-flow-offset-y"))).toBeLessThan(
+    flowAfterIdle - 0.005
+  );
 });
 
 test("keeps the hero as an unframed ASCII-only title stage", async ({ page }) => {

@@ -193,6 +193,7 @@ void main() {
   float sr = sin(u_rotate);
   p = mat2(cr, -sr, sr, cr) * p;
   p += u_offset;
+  p += vec2(u_time * 0.055, -u_time * 0.075);
   p += u_drift * vec2(sin(u_time * 0.31), cos(u_time * 0.23));
 
   if (u_warp > 0.0) {
@@ -262,7 +263,7 @@ const UNIFORMS = {
   cursorStrength: 0.65,
   cursorRadius: 0.46,
   oklab: 0,
-  timeScale: 0.14,
+  timeScale: 0.42,
 };
 
 export function ShaderBackground() {
@@ -432,6 +433,7 @@ export function ShaderBackground() {
       }
 
       const shaderTime = ((now - start) / 1000) * UNIFORMS.timeScale;
+      const flowOffsetY = -shaderTime * 0.075;
       gl.uniform4f(uni("u_scene"), w, h, shaderTime, UNIFORMS.colorCount);
       gl.uniform4f(uni("u_space"), UNIFORMS.offsetX, UNIFORMS.offsetY + scrollOffset, mouseX, mouseY);
       gl.uniform4f(
@@ -445,6 +447,7 @@ export function ShaderBackground() {
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
       canvas.dataset.shaderTime = shaderTime.toFixed(4);
+      canvas.dataset.flowOffsetY = flowOffsetY.toFixed(4);
       raf = requestAnimationFrame(render);
     };
 
