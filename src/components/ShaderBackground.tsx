@@ -262,7 +262,7 @@ const UNIFORMS = {
   cursorStrength: 0.65,
   cursorRadius: 0.46,
   oklab: 0,
-  timeScale: 0,
+  timeScale: 0.14,
 };
 
 export function ShaderBackground() {
@@ -431,7 +431,8 @@ export function ShaderBackground() {
         gl.viewport(0, 0, w, h);
       }
 
-      gl.uniform4f(uni("u_scene"), w, h, ((now - start) / 1000) * UNIFORMS.timeScale, UNIFORMS.colorCount);
+      const shaderTime = ((now - start) / 1000) * UNIFORMS.timeScale;
+      gl.uniform4f(uni("u_scene"), w, h, shaderTime, UNIFORMS.colorCount);
       gl.uniform4f(uni("u_space"), UNIFORMS.offsetX, UNIFORMS.offsetY + scrollOffset, mouseX, mouseY);
       gl.uniform4f(
         uni("u_cursor"),
@@ -443,6 +444,7 @@ export function ShaderBackground() {
 
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
+      canvas.dataset.shaderTime = shaderTime.toFixed(4);
       raf = requestAnimationFrame(render);
     };
 

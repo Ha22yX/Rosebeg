@@ -60,6 +60,14 @@ test("moves the shader background slowly upward while scrolling", async ({ page 
   await expect.poll(async () => Number(await canvas.getAttribute("data-parallax-offset"))).toBeGreaterThan(before + 0.05);
 });
 
+test("keeps the shader background subtly animated while idle", async ({ page }) => {
+  await page.goto("/");
+  const canvas = page.locator("[data-shader-background] canvas");
+  await expect(canvas).toHaveAttribute("data-shader-time", /[-0-9.]+/);
+  const before = Number(await canvas.getAttribute("data-shader-time"));
+  await expect.poll(async () => Number(await canvas.getAttribute("data-shader-time"))).toBeGreaterThan(before + 0.08);
+});
+
 test("keeps the hero as an unframed ASCII-only title stage", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".topbar")).toHaveCount(0);
