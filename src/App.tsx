@@ -4,6 +4,7 @@ import {
   ManifestoTypewriter,
   type ManifestoTitleState,
 } from "@/components/ui/manifesto-typewriter";
+import { SignalNavigation } from "@/components/ui/signal-navigation";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
 
 const compactAsciiLayoutTitle = `A personal
@@ -140,6 +141,7 @@ function App() {
   return (
     <>
       <ShaderBackground />
+      <SignalNavigation />
       <main className="site-shell">
         <section id="hero" className="hero-panel" aria-labelledby="hero-title">
           <div className="hero-stage">

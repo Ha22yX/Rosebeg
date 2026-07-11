@@ -32,7 +32,7 @@ test("types the manifesto in the requested sequence with yellow roles", async ({
 
 test("anchors the first sentence while typing spaces instead of re-centering every character", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("[data-typewriter-title]")).toContainText("This is ", { timeout: 2000 });
+  await expect(page.locator("[data-typewriter-title]")).toContainText("This is ", { timeout: 3000 });
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
@@ -57,6 +57,26 @@ test("uses the shader background and removes the old cable instrument", async ({
   await expect(page.locator(".shader-shade")).toHaveCount(0);
   await expect(page.locator("[data-cable-system]")).toHaveCount(0);
   await expect(page.getByText("0.78A")).toHaveCount(0);
+});
+
+test("opens a staggered right-side navigation panel", async ({ page }) => {
+  await page.goto("/");
+  const nav = page.locator("[data-signal-navigation]");
+  const trigger = page.getByRole("button", { name: "Open navigation" });
+
+  await expect(trigger).toBeVisible();
+  await expect(nav).toBeVisible();
+
+  await trigger.click();
+  await expect(page.locator("[data-staggered-menu-panel]")).toBeVisible();
+  await expect(page.getByText("Socials")).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /Projects/ })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /Contact/ })).toBeVisible();
+  await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
+
+  await page.getByRole("menuitem", { name: /Projects/ }).click();
+  await expect(page).toHaveURL(/#works$/);
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
 test("moves the shader background slowly upward while scrolling", async ({ page }) => {
