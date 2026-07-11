@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ASCIIText } from "@/components/ui/ascii-text";
+import { InfiniteMenu, type InfiniteMenuItem } from "@/components/ui/infinite-menu";
 import {
   ManifestoTypewriter,
   type ManifestoTitleState,
@@ -20,11 +21,49 @@ const initialTitleState: ManifestoTitleState = {
   targetText: "This is Rosebeg",
 };
 
-const projects = [
-  ["Project 01", "Primary site"],
-  ["Project 02", "Interactive work"],
-  ["Project 03", "Visual system"],
-  ["Archive", "Older signals"],
+const photographyItems: InfiniteMenuItem[] = [
+  {
+    image: "/assets/photography/signal-plain-thumb.jpg",
+    fullImage: "/assets/photography/signal-plain-large.jpg",
+    title: "Stone Gate",
+    description: "A quiet threshold held in old masonry and winter light.",
+    aspect: 2400 / 1800,
+  },
+  {
+    image: "/assets/photography/violet-street-thumb.jpg",
+    fullImage: "/assets/photography/violet-street-large.jpg",
+    title: "Underline Skyline",
+    description: "A city cut by shadow, steel, and a distant tower.",
+    aspect: 2400 / 1800,
+  },
+  {
+    image: "/assets/photography/quiet-edge-thumb.jpg",
+    fullImage: "/assets/photography/quiet-edge-large.jpg",
+    title: "Crosswalk Heat",
+    description: "Street geometry washed in red light and noon glare.",
+    aspect: 2400 / 1800,
+  },
+  {
+    image: "/assets/photography/night-current-thumb.jpg",
+    fullImage: "/assets/photography/night-current-large.jpg",
+    title: "Library Drift",
+    description: "A soft corridor of books dissolving into focus.",
+    aspect: 2400 / 1173,
+  },
+  {
+    image: "/assets/photography/glass-weather-thumb.jpg",
+    fullImage: "/assets/photography/glass-weather-large.jpg",
+    title: "Harbor Weather",
+    description: "Blue air, water, and towers held in a clean horizon.",
+    aspect: 2400 / 1597,
+  },
+  {
+    image: "/assets/photography/afterimage-thumb.jpg",
+    fullImage: "/assets/photography/afterimage-large.jpg",
+    title: "Window Afterimage",
+    description: "The city reduced to panes, silhouettes, and late light.",
+    aspect: 1655 / 2400,
+  },
 ];
 
 const socials = [
@@ -212,28 +251,9 @@ function App() {
           </div>
         </section>
 
-        <section id="works" className="section-panel works-panel" aria-labelledby="works-title">
-          <div className="section-copy">
-            <h2 id="works-title">Works</h2>
-            <p>
-              Editable portals for other websites, experiments, and digital
-              artifacts connected to Rosebeg.
-            </p>
-          </div>
-          <div className="project-grid" aria-label="Portfolio links">
-            {projects.map(([label, detail], index) => (
-              <a
-                className={index === 0 ? "project-link project-large" : "project-link"}
-                href="#"
-                aria-label={label}
-                key={label}
-              >
-                <span>{label}</span>
-                <small>{detail}</small>
-              </a>
-            ))}
-          </div>
-        </section>
+          <section id="works" className="section-panel photography-panel" aria-labelledby="works-title">
+            <InfiniteMenu items={photographyItems} scale={1} headingId="works-title" />
+          </section>
 
         <section id="social" className="section-panel social-panel" aria-labelledby="social-title">
           <div className="section-copy">

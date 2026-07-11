@@ -4,7 +4,7 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Rosebeg digital manifesto" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Who" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Works" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Photography" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Social" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
 });
@@ -111,12 +111,12 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await trigger.click();
   await expect(page.locator("[data-staggered-menu-panel]")).toBeVisible();
   await expect(page.getByText("Socials")).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: /projects/i })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /photos/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
   await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
-  await expect(page.locator("[data-shuffle-text='PROJECTS'] [data-shuffle-char]")).toHaveCount(8);
+  await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char]")).toHaveCount(6);
 
-  await page.getByRole("menuitem", { name: /projects/i }).click();
+  await page.getByRole("menuitem", { name: /photos/i }).click();
   await expect(page).toHaveURL(/#works$/);
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
@@ -269,9 +269,33 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
   });
 });
 
-test("exposes editable project and social placeholders", async ({ page }) => {
+test("exposes photography menu items and social placeholders", async ({ page }) => {
   await page.goto("/");
-  for (const label of ["Project 01", "Project 02", "Project 03", "Archive", "GitHub", "X", "Instagram", "Email"]) {
+  await expect(page.locator("[data-infinite-menu]")).toBeVisible();
+
+  for (const title of [
+    "Stone Gate",
+    "Underline Skyline",
+    "Crosswalk Heat",
+    "Library Drift",
+    "Harbor Weather",
+    "Window Afterimage",
+  ]) {
+    await expect(page.getByRole("button", { name: `Open ${title}` }).first()).toBeVisible();
+  }
+
+  for (const label of ["GitHub", "X", "Instagram", "Email"]) {
     await expect(page.getByRole("link", { name: label })).toBeVisible();
   }
+});
+
+test("opens a photography circle into a full image and closes on blank click", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".infinite-menu-stage").hover();
+  await page.getByRole("button", { name: "Open Stone Gate" }).first().click();
+  await expect(page.locator("[data-photo-lightbox]")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Stone Gate" })).toBeVisible();
+
+  await page.locator("[data-photo-lightbox]").click({ position: { x: 10, y: 10 } });
+  await expect(page.locator("[data-photo-lightbox]")).toHaveCount(0);
 });
