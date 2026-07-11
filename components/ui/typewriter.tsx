@@ -19,6 +19,7 @@ interface TypewriterProps {
     animate: Variants["animate"];
   };
   cursorClassName?: string;
+  onDisplayTextChange?: (displayText: string) => void;
 }
 
 const Typewriter = ({
@@ -45,6 +46,7 @@ const Typewriter = ({
       },
     },
   },
+  onDisplayTextChange,
 }: TypewriterProps) => {
   const [displayText, setDisplayText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,6 +55,10 @@ const Typewriter = ({
 
   const texts = useMemo(() => (Array.isArray(text) ? text : [text]), [text]);
   const singleRunText = texts.length === 1 && !loop ? texts[0] : null;
+
+  useEffect(() => {
+    onDisplayTextChange?.(displayText);
+  }, [displayText, onDisplayTextChange]);
 
   useEffect(() => {
     if (singleRunText === null) {
