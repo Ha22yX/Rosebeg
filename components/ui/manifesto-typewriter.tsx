@@ -40,16 +40,31 @@ const titleSequence: SequenceStep[] = [
   { action: "type", text: "This is Rosebeg", speed: typeSpeed, targetText: "This is Rosebeg" },
   { action: "wait", duration: 2600, targetText: "This is Rosebeg" },
   { action: "delete", count: "This is Rosebeg".length, speed: deleteSpeed, targetText: "This is Rosebeg" },
-  { action: "type", text: "Where I create", speed: typeSpeed, targetText: "Where I create" },
-  { action: "wait", duration: 1600, targetText: "Where I create" },
-  { action: "delete", count: " create".length, speed: deleteSpeed, targetText: "Where I create" },
-  { action: "type", text: " explore", speed: typeSpeed, targetText: "Where I explore" },
-  { action: "wait", duration: 1600, targetText: "Where I explore" },
-  { action: "delete", count: " explore".length, speed: deleteSpeed, targetText: "Where I explore" },
-  { action: "type", text: " redefine", speed: typeSpeed, targetText: "Where I redefine" },
-  { action: "wait", duration: 1600, targetText: "Where I redefine" },
-  { action: "delete", count: "Where I redefine".length, speed: deleteSpeed, targetText: "Where I redefine" },
-  { action: "type", text: "I am Ha22yX", speed: typeSpeed, targetText: "I am Ha22yX" },
+  { action: "type", text: "A personal portfolio", speed: typeSpeed, targetText: "A personal portfolio by HarryX" },
+  { action: "wait", duration: 520, targetText: "A personal portfolio by HarryX" },
+  { action: "type", text: " by HarryX", speed: typeSpeed, targetText: "A personal portfolio by HarryX" },
+  { action: "wait", duration: 1800, targetText: "A personal portfolio by HarryX" },
+  {
+    action: "delete",
+    count: "A personal portfolio by HarryX".length,
+    speed: deleteSpeed,
+    targetText: "A personal portfolio by HarryX",
+  },
+  { action: "type", text: "I am a Developer", speed: typeSpeed, targetText: "I am a Developer" },
+  { action: "wait", duration: 1600, targetText: "I am a Developer" },
+  { action: "delete", count: " Developer".length, speed: deleteSpeed, targetText: "I am a Developer" },
+  { action: "type", text: " Researcher", speed: typeSpeed, targetText: "I am a Researcher" },
+  { action: "wait", duration: 1600, targetText: "I am a Researcher" },
+  { action: "delete", count: " Researcher".length, speed: deleteSpeed, targetText: "I am a Researcher" },
+  { action: "type", text: " Photographer", speed: typeSpeed, targetText: "I am a Photographer" },
+  { action: "wait", duration: 1600, targetText: "I am a Photographer" },
+  {
+    action: "delete",
+    count: "I am a Photographer".length,
+    speed: deleteSpeed,
+    targetText: "I am a Photographer",
+  },
+  { action: "type", text: "Welcome to Rosebeg", speed: typeSpeed, targetText: "Welcome to Rosebeg" },
 ];
 
 type TimelineSegment =
@@ -158,13 +173,13 @@ const cursorAnimationVariants: {
 };
 
 const yellowSegments = [
-  { key: "create", phrase: "create" },
-  { key: "explore", phrase: "explore" },
-  { key: "redefine", phrase: "redefine" },
+  { key: "developer", phrase: "Developer" },
+  { key: "researcher", phrase: "Researcher" },
+  { key: "photographer", phrase: "Photographer" },
 ];
 
 function renderSegmentedTitle(displayText: string) {
-  const base = "Where I ";
+  const base = "I am a ";
 
   if (!displayText.startsWith(base)) {
     return <span>{displayText}</span>;

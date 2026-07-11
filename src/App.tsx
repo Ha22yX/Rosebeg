@@ -6,11 +6,11 @@ import {
 } from "@/components/ui/manifesto-typewriter";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
 
-const asciiLayoutTitle = "Where I redefine";
-const compactAsciiLayoutTitle = `Where I
-redefine`;
-const highlightPrefix = "Where I ";
-const highlightPhrases = ["create", "explore", "redefine"];
+const compactAsciiLayoutTitle = `A personal
+portfolio
+by HarryX`;
+const highlightPrefix = "I am a ";
+const highlightPhrases = ["Developer", "Researcher", "Photographer"];
 const initialTitleState: ManifestoTitleState = {
   displayText: "",
   targetText: "This is Rosebeg",
@@ -37,10 +37,44 @@ function formatAsciiTitle(text: string, compact: boolean) {
 
   return text
     .replace("This is Rosebeg", "This is\nRosebeg")
-    .replace("Where I create", "Where I\ncreate")
-    .replace("Where I explore", "Where I\nexplore")
-    .replace("Where I redefine", "Where I\nredefine")
-    .replace("I am Ha22yX", "I am\nHa22yX");
+    .replace("A personal portfolio by HarryX", "A personal\nportfolio\nby HarryX")
+    .replace("A personal portfolio", "A personal\nportfolio")
+    .replace("I am a Developer", "I am a\nDeveloper")
+    .replace("I am a Researcher", "I am a\nResearcher")
+    .replace("I am a Photographer", "I am a\nPhotographer")
+    .replace("Welcome to Rosebeg", "Welcome to\nRosebeg");
+}
+
+function getAsciiRenderConfig(targetText: string, compact: boolean) {
+  if (compact) {
+    return {
+      layoutText: compactAsciiLayoutTitle,
+      asciiFontSize: 5,
+      planeBaseHeight: 9,
+    };
+  }
+
+  if (targetText === "A personal portfolio by HarryX") {
+    return {
+      layoutText: "A personal portfolio by HarryX",
+      asciiFontSize: 6,
+      planeBaseHeight: 7.1,
+    };
+  }
+
+  if (targetText.startsWith("I am a ")) {
+    return {
+      layoutText: "I am a Photographer",
+      asciiFontSize: 6,
+      planeBaseHeight: 9.4,
+    };
+  }
+
+  return {
+    layoutText: targetText || "This is Rosebeg",
+    asciiFontSize: 6,
+    planeBaseHeight: 9.4,
+  };
 }
 
 function getAsciiTitleLayers(text: string, targetText: string, compact: boolean) {
@@ -72,7 +106,7 @@ function getAsciiTitleLayers(text: string, targetText: string, compact: boolean)
 
   if (compact) {
     return {
-      baseText: `Where I\n${" ".repeat(ending.length)}`,
+      baseText: `I am a\n${" ".repeat(ending.length)}`,
       accentText: `\n${ending}`,
       baseAnchorText: anchorText,
       accentAnchorText: anchorText,
@@ -93,6 +127,7 @@ function App() {
   const [titleState, setTitleState] = useState<ManifestoTitleState>(initialTitleState);
   const [isCompact, setIsCompact] = useState(false);
   const asciiTitle = getAsciiTitleLayers(titleState.displayText, titleState.targetText, isCompact);
+  const asciiRender = getAsciiRenderConfig(titleState.targetText, isCompact);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 560px)");
@@ -120,12 +155,12 @@ function App() {
                 <span className="ascii-title-base">
                   <ASCIIText
                     text={asciiTitle.baseText}
-                    layoutText={isCompact ? compactAsciiLayoutTitle : asciiLayoutTitle}
+                    layoutText={asciiRender.layoutText}
                     anchorText={asciiTitle.baseAnchorText}
-                    asciiFontSize={isCompact ? 5 : 6}
+                    asciiFontSize={asciiRender.asciiFontSize}
                     textFontSize={160}
                     textColor="#fdf9f3"
-                    planeBaseHeight={isCompact ? 9 : 9.4}
+                    planeBaseHeight={asciiRender.planeBaseHeight}
                     alignMode={asciiTitle.baseAlignMode}
                     enableWaves
                   />
@@ -133,12 +168,12 @@ function App() {
                 <span className="ascii-title-accent" data-ascii-accent>
                   <ASCIIText
                     text={asciiTitle.accentText || " "}
-                    layoutText={isCompact ? compactAsciiLayoutTitle : asciiLayoutTitle}
+                    layoutText={asciiRender.layoutText}
                     anchorText={asciiTitle.accentAnchorText}
-                    asciiFontSize={isCompact ? 5 : 6}
+                    asciiFontSize={asciiRender.asciiFontSize}
                     textFontSize={160}
                     textColor="#ffd866"
-                    planeBaseHeight={isCompact ? 9 : 9.4}
+                    planeBaseHeight={asciiRender.planeBaseHeight}
                     alignMode="layout"
                     enableWaves
                   />

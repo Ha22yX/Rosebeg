@@ -7,11 +7,13 @@ This version is a single-page sci-fi electronic portfolio homepage built with Re
 ```text
 This is Rosebeg
 
-Where I create
-Where I explore
-Where I redefine
+A personal portfolio by HarryX
 
-I am Ha22yX
+I am a Developer
+I am a Researcher
+I am a Photographer
+
+Welcome to Rosebeg
 ```
 
 ## Local Development

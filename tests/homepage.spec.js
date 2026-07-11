@@ -9,23 +9,25 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
 });
 
-test("types the manifesto in the requested sequence with yellow action words", async ({ page }) => {
+test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");
 
   await expect(title).toContainText("This is Rosebeg", { timeout: 4000 });
   await expect(title).not.toContainText("This is Rosebeg.");
-  await expect(title).toContainText("Where I create", { timeout: 7000 });
-  await expect(page.locator("[data-yellow-segment='create']")).toHaveCSS("color", "rgb(255, 216, 102)");
+  await expect(title).toContainText("A personal portfolio", { timeout: 7000 });
+  await expect(title).toContainText("A personal portfolio by HarryX", { timeout: 4000 });
 
-  await expect(title).toContainText("Where I explore", { timeout: 5000 });
-  await expect(page.locator("[data-yellow-segment='explore']")).toHaveCSS("color", "rgb(255, 216, 102)");
+  await expect(title).toContainText("I am a Developer", { timeout: 7000 });
+  await expect(page.locator("[data-yellow-segment='developer']")).toHaveCSS("color", "rgb(255, 216, 102)");
 
-  await expect(title).toContainText("Where I redefine", { timeout: 5000 });
-  await expect(page.locator("[data-yellow-segment='redefine']")).toHaveCSS("color", "rgb(255, 216, 102)");
+  await expect(title).toContainText("I am a Researcher", { timeout: 5000 });
+  await expect(page.locator("[data-yellow-segment='researcher']")).toHaveCSS("color", "rgb(255, 216, 102)");
 
-  await expect(title).toContainText("I am Ha22yX", { timeout: 7000 });
-  await expect(title).not.toContainText("I am Ha22yX.");
+  await expect(title).toContainText("I am a Photographer", { timeout: 5000 });
+  await expect(page.locator("[data-yellow-segment='photographer']")).toHaveCSS("color", "rgb(255, 216, 102)");
+
+  await expect(title).toContainText("Welcome to Rosebeg", { timeout: 8000 });
 });
 
 test("anchors the first sentence while typing spaces instead of re-centering every character", async ({ page }) => {
@@ -34,9 +36,9 @@ test("anchors the first sentence while typing spaces instead of re-centering eve
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
-test("anchors the shared Where I prefix before the yellow action word appears", async ({ page }) => {
+test("anchors the shared I am a prefix before the yellow role appears", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("[data-typewriter-title]")).toContainText("Where I", { timeout: 8000 });
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a", { timeout: 11000 });
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
@@ -73,8 +75,8 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
   await expect(page.locator("[data-ascii-title]")).toBeVisible();
   await expect(page.locator(".ascii-title-base pre")).toBeVisible();
   await expect(page.locator(".ascii-title-accent pre")).toBeVisible();
-  await expect(page.locator("[data-typewriter-title]")).toContainText("I am Ha22yX", {
-    timeout: 18000,
+  await expect(page.locator("[data-typewriter-title]")).toContainText("Welcome to Rosebeg", {
+    timeout: 24000,
   });
 });
 
