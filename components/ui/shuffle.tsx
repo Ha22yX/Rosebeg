@@ -22,6 +22,7 @@ type ShuffleProps = {
   loopDelay?: number;
   activeKey?: string | number;
   playDelay?: number;
+  enabled?: boolean;
   className?: string;
 };
 
@@ -49,6 +50,7 @@ export function Shuffle({
   loopDelay = 0,
   activeKey,
   playDelay = 0,
+  enabled = true,
   className,
 }: ShuffleProps) {
   const characters = useMemo(() => [...text], [text]);
@@ -59,8 +61,10 @@ export function Shuffle({
   const timerRef = useRef<number | null>(null);
   const hasTriggeredRef = useRef(false);
   const isPlayingRef = useRef(false);
+  const enabledRef = useRef(enabled);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [ready, setReady] = useState(false);
+  enabledRef.current = enabled;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -137,7 +141,7 @@ export function Shuffle({
 
   const runShuffle = useCallback(
     (force = false) => {
-      if (!rootRef.current || !fontsLoaded || !text) {
+      if (!enabledRef.current || !rootRef.current || !fontsLoaded || !text) {
         return;
       }
 
@@ -233,7 +237,11 @@ export function Shuffle({
   const scheduleShuffle = useCallback(
     (force = false, delay = playDelay) => {
       clearTimer();
-      timerRef.current = window.setTimeout(() => runShuffle(force), Math.max(0, delay) * 1000);
+      timerRef.current = window.setTimeout(() => {
+        if (enabledRef.current) {
+          runShuffle(force);
+        }
+      }, Math.max(0, delay) * 1000);
     },
     [clearTimer, playDelay, runShuffle]
   );
@@ -257,12 +265,20 @@ export function Shuffle({
   }, [text]);
 
   useEffect(() => {
+    if (!enabled) {
+      clearTimer();
+      resetTimeline();
+      cleanupToStill();
+      setReady(true);
+      return;
+    }
+
     if (!fontsLoaded) {
       return;
     }
 
     scheduleShuffle(activeKey !== undefined);
-  }, [activeKey, fontsLoaded, scheduleShuffle]);
+  }, [activeKey, cleanupToStill, clearTimer, enabled, fontsLoaded, resetTimeline, scheduleShuffle]);
 
   useEffect(() => {
     return () => {
@@ -272,7 +288,7 @@ export function Shuffle({
   }, [clearTimer, resetTimeline]);
 
   const handlePointerEnter = () => {
-    if (!triggerOnHover || isPlayingRef.current) {
+    if (!enabled || !triggerOnHover || isPlayingRef.current) {
       return;
     }
 
@@ -286,6 +302,7 @@ export function Shuffle({
       aria-hidden="true"
       data-shuffle-text={text}
       data-shuffle-delay={playDelay}
+      data-shuffle-enabled={enabled ? "true" : "false"}
       data-shuffle-hover={triggerOnHover ? "true" : "false"}
       onPointerEnter={handlePointerEnter}
     >

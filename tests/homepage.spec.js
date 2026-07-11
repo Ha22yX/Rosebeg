@@ -118,8 +118,11 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char-wrapper]")).toHaveCount(6);
   await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char]")).toHaveCount(18);
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-delay", "0");
-  await expect(page.locator("[data-shuffle-text='ABOUT']")).toHaveAttribute("data-shuffle-delay", "0.16");
-  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "0");
+  await expect(page.locator("[data-shuffle-text='ABOUT']")).toHaveAttribute("data-shuffle-delay", "0.25");
+  await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-delay", "0.5");
+  await expect(page.locator("[data-shuffle-text='SOCIAL']")).toHaveAttribute("data-shuffle-delay", "0.75");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1");
+  await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "true");
   await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-hover", "false");
 
   const photosLink = page.getByRole("menuitem", { name: /photos/i });
@@ -130,6 +133,7 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await photosLink.click();
   await expect(page).toHaveURL(/#works$/);
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "false");
 });
 
 test("pushes the page and oversized shared shader background when navigation opens", async ({ page }) => {
@@ -220,6 +224,14 @@ test("keeps navigation, page, and background aligned during rapid toggles", asyn
       return matrix.m41;
     });
   }).toBeGreaterThan(400);
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-enabled", "false");
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-enabled", "true");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
 test("moves the shader background slowly upward while scrolling", async ({ page }) => {

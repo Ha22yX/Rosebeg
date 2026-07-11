@@ -17,6 +17,8 @@ const socialItems = [
   { label: "Email", link: "mailto:hello@rosebeg.com" },
 ];
 
+const SHUFFLE_SEQUENCE_DELAY = 0.25;
+
 type SignalNavigationProps = {
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
@@ -154,7 +156,8 @@ export function SignalNavigation({
                   loop={false}
                   loopDelay={0}
                   activeKey={`${shuffleKey}-${item.label}`}
-                  playDelay={index % 2 === 0 ? 0 : 0.16}
+                  playDelay={index * SHUFFLE_SEQUENCE_DELAY}
+                  enabled={isOpen}
                 />
               </span>
               <span className="staggered-menu-number">{String(index + 1).padStart(2, "0")}</span>
