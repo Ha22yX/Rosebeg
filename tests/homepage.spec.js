@@ -42,6 +42,14 @@ test("anchors the shared I am a prefix before the yellow role appears", async ({
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
+test("briefly pauses on the shared I am a prefix before typing each role", async ({ page }) => {
+  await page.goto("/");
+  const title = page.locator("[data-typewriter-title]");
+  await expect(title).toHaveText(/I am a_/, { timeout: 13000 });
+  await page.waitForTimeout(160);
+  await expect(title).toHaveText(/I am a_/);
+});
+
 test("uses the shader background and removes the old cable instrument", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-shader-background]")).toBeVisible();

@@ -35,6 +35,7 @@ export type ManifestoTitleState = {
 
 const typeSpeed = 62;
 const deleteSpeed = 34;
+const rolePrefixPause = 420;
 
 const titleSequence: SequenceStep[] = [
   { action: "type", text: "This is Rosebeg", speed: typeSpeed, targetText: "This is Rosebeg" },
@@ -50,12 +51,16 @@ const titleSequence: SequenceStep[] = [
     speed: deleteSpeed,
     targetText: "A personal portfolio by HarryX",
   },
-  { action: "type", text: "I am a Developer", speed: typeSpeed, targetText: "I am a Developer" },
+  { action: "type", text: "I am a", speed: typeSpeed, targetText: "I am a Developer" },
+  { action: "wait", duration: rolePrefixPause, targetText: "I am a Developer" },
+  { action: "type", text: " Developer", speed: typeSpeed, targetText: "I am a Developer" },
   { action: "wait", duration: 1600, targetText: "I am a Developer" },
   { action: "delete", count: " Developer".length, speed: deleteSpeed, targetText: "I am a Developer" },
+  { action: "wait", duration: rolePrefixPause, targetText: "I am a Researcher" },
   { action: "type", text: " Researcher", speed: typeSpeed, targetText: "I am a Researcher" },
   { action: "wait", duration: 1600, targetText: "I am a Researcher" },
   { action: "delete", count: " Researcher".length, speed: deleteSpeed, targetText: "I am a Researcher" },
+  { action: "wait", duration: rolePrefixPause, targetText: "I am a Photographer" },
   { action: "type", text: " Photographer", speed: typeSpeed, targetText: "I am a Photographer" },
   { action: "wait", duration: 1600, targetText: "I am a Photographer" },
   {
