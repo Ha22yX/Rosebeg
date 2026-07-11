@@ -127,6 +127,7 @@ function getAsciiTitleLayers(text: string, targetText: string, compact: boolean)
 function App() {
   const [titleState, setTitleState] = useState<ManifestoTitleState>(initialTitleState);
   const [isCompact, setIsCompact] = useState(false);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const asciiTitle = getAsciiTitleLayers(titleState.displayText, titleState.targetText, isCompact);
   const asciiRender = getAsciiRenderConfig(titleState.targetText, isCompact);
 
@@ -140,50 +141,50 @@ function App() {
 
   return (
     <>
-      <ShaderBackground />
-      <SignalNavigation />
-      <main className="site-shell">
-        <section id="hero" className="hero-panel" aria-labelledby="hero-title">
-          <div className="hero-stage">
-            <h1
-              id="hero-title"
-              aria-label="Rosebeg digital manifesto"
-              className="manifesto-title ascii-manifesto-title"
-            >
-              <span className="typewriter-title-source" data-typewriter-title>
-                <ManifestoTypewriter onTitleStateChange={setTitleState} />
-              </span>
-              <span className="ascii-title-layer" data-ascii-title aria-hidden="true">
-                <span className="ascii-title-base">
-                  <ASCIIText
-                    text={asciiTitle.baseText}
-                    layoutText={asciiRender.layoutText}
-                    anchorText={asciiTitle.baseAnchorText}
-                    asciiFontSize={asciiRender.asciiFontSize}
-                    textFontSize={160}
-                    textColor="#fdf9f3"
-                    planeBaseHeight={asciiRender.planeBaseHeight}
-                    alignMode={asciiTitle.baseAlignMode}
-                    enableWaves
-                  />
+      <ShaderBackground className={isNavigationOpen ? "is-navigation-open" : ""} />
+      <div className={isNavigationOpen ? "page-stage is-navigation-open" : "page-stage"} data-page-stage>
+        <main className="site-shell">
+          <section id="hero" className="hero-panel" aria-labelledby="hero-title">
+            <div className="hero-stage">
+              <h1
+                id="hero-title"
+                aria-label="Rosebeg digital manifesto"
+                className="manifesto-title ascii-manifesto-title"
+              >
+                <span className="typewriter-title-source" data-typewriter-title>
+                  <ManifestoTypewriter onTitleStateChange={setTitleState} />
                 </span>
-                <span className="ascii-title-accent" data-ascii-accent>
-                  <ASCIIText
-                    text={asciiTitle.accentText || " "}
-                    layoutText={asciiRender.layoutText}
-                    anchorText={asciiTitle.accentAnchorText}
-                    asciiFontSize={asciiRender.asciiFontSize}
-                    textFontSize={160}
-                    textColor="#ffd866"
-                    planeBaseHeight={asciiRender.planeBaseHeight}
-                    alignMode="layout"
-                    enableWaves
-                  />
+                <span className="ascii-title-layer" data-ascii-title aria-hidden="true">
+                  <span className="ascii-title-base">
+                    <ASCIIText
+                      text={asciiTitle.baseText}
+                      layoutText={asciiRender.layoutText}
+                      anchorText={asciiTitle.baseAnchorText}
+                      asciiFontSize={asciiRender.asciiFontSize}
+                      textFontSize={160}
+                      textColor="#fdf9f3"
+                      planeBaseHeight={asciiRender.planeBaseHeight}
+                      alignMode={asciiTitle.baseAlignMode}
+                      enableWaves
+                    />
+                  </span>
+                  <span className="ascii-title-accent" data-ascii-accent>
+                    <ASCIIText
+                      text={asciiTitle.accentText || " "}
+                      layoutText={asciiRender.layoutText}
+                      anchorText={asciiTitle.accentAnchorText}
+                      asciiFontSize={asciiRender.asciiFontSize}
+                      textFontSize={160}
+                      textColor="#ffd866"
+                      planeBaseHeight={asciiRender.planeBaseHeight}
+                      alignMode="layout"
+                      enableWaves
+                    />
+                  </span>
                 </span>
-              </span>
-            </h1>
-          </div>
-        </section>
+              </h1>
+            </div>
+          </section>
 
         <section id="who" className="section-panel who-panel" aria-labelledby="who-title">
           <div className="section-copy">
@@ -251,7 +252,9 @@ function App() {
             </a>
           </div>
         </section>
-      </main>
+        </main>
+      </div>
+      <SignalNavigation isOpen={isNavigationOpen} onOpenChange={setIsNavigationOpen} />
     </>
   );
 }

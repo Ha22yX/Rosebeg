@@ -15,20 +15,34 @@ const socialItems = [
   { label: "Email", link: "mailto:hello@rosebeg.com" },
 ];
 
-export function SignalNavigation() {
-  const [isOpen, setIsOpen] = useState(false);
+type SignalNavigationProps = {
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+};
+
+export function SignalNavigation({
+  isOpen: controlledIsOpen,
+  onOpenChange,
+}: SignalNavigationProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<HTMLAnchorElement[]>([]);
   const socialRefs = useRef<HTMLAnchorElement[]>([]);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
 
-  const closeMenu = () => setIsOpen(false);
-  const toggleMenu = () => setIsOpen((value) => !value);
+  const setMenuOpen = (nextIsOpen: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setInternalIsOpen(nextIsOpen);
+    }
+
+    onOpenChange?.(nextIsOpen);
+  };
+
+  const closeMenu = () => setMenuOpen(false);
+  const toggleMenu = () => setMenuOpen(!isOpen);
 
   useLayoutEffect(() => {
-    if (panelRef.current) {
-      gsap.set(panelRef.current, { x: "104%", pointerEvents: "none" });
-    }
     if (backdropRef.current) {
       gsap.set(backdropRef.current, { autoAlpha: 0 });
     }
@@ -55,20 +69,14 @@ export function SignalNavigation() {
       return;
     }
 
-    gsap.killTweensOf([panel, backdrop, ...items, ...socials]);
+    gsap.killTweensOf([backdrop, ...items, ...socials]);
 
     if (isOpen) {
-      gsap.set(panel, { pointerEvents: "auto" });
       gsap.to(backdrop, {
         autoAlpha: 1,
-        duration: 0.32,
+        duration: 0.72,
         ease: "power2.out",
       });
-      gsap.fromTo(
-        panel,
-        { x: "104%", borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
-        { x: "0%", duration: 0.72, ease: "expo.out", borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
-      );
       gsap.fromTo(
         items,
         { x: 74, y: 28, autoAlpha: 0, rotate: 2 },
@@ -93,16 +101,8 @@ export function SignalNavigation() {
 
     gsap.to(backdrop, {
       autoAlpha: 0,
-      duration: 0.28,
-      ease: "power2.in",
-    });
-    gsap.to(panel, {
-      x: "104%",
-      duration: 0.48,
-      ease: "power3.inOut",
-      onComplete: () => {
-        gsap.set(panel, { pointerEvents: "none" });
-      },
+      duration: 0.72,
+      ease: "power2.out",
     });
   }, [isOpen]);
 
@@ -127,7 +127,7 @@ export function SignalNavigation() {
 
       <aside
         ref={panelRef}
-        className="staggered-menu-panel"
+        className={isOpen ? "staggered-menu-panel is-open" : "staggered-menu-panel"}
         aria-hidden={!isOpen}
         aria-label="Rosebeg navigation"
         data-staggered-menu-panel

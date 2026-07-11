@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
 
+type ShaderBackgroundProps = {
+  className?: string;
+};
+
 const VERT = `attribute vec2 a_position;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
@@ -266,7 +270,7 @@ const UNIFORMS = {
   timeScale: 0.42,
 };
 
-export function ShaderBackground() {
+export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -470,7 +474,11 @@ export function ShaderBackground() {
   }, []);
 
   return (
-    <div className="shader-background" data-shader-background aria-hidden="true">
+    <div
+      className={["shader-background", className].filter(Boolean).join(" ")}
+      data-shader-background
+      aria-hidden="true"
+    >
       <canvas ref={canvasRef} className="shader-canvas" />
     </div>
   );

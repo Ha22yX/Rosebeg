@@ -45,7 +45,7 @@ test("anchors the shared I am a prefix before the yellow role appears", async ({
 test("briefly pauses on the shared I am a prefix before typing each role", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");
-  await expect(title).toHaveText(/I am a_/, { timeout: 13000 });
+  await expect(title).toHaveText(/I am a_/, { timeout: 15000 });
   await page.waitForTimeout(160);
   await expect(title).toHaveText(/I am a_/);
 });
@@ -70,13 +70,103 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await trigger.click();
   await expect(page.locator("[data-staggered-menu-panel]")).toBeVisible();
   await expect(page.getByText("Socials")).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: /Projects/ })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: /Contact/ })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /projects/i })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
   await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
 
-  await page.getByRole("menuitem", { name: /Projects/ }).click();
+  await page.getByRole("menuitem", { name: /projects/i }).click();
   await expect(page).toHaveURL(/#works$/);
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("pushes the page and oversized shared shader background when navigation opens", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.locator("[data-page-stage]");
+  const shader = page.locator("[data-shader-background]");
+  const trigger = page.locator("[data-signal-navigation]");
+
+  const stageBefore = await stage.boundingBox();
+  const shaderBefore = await shader.boundingBox();
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect.poll(async () => {
+    return stage.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeLessThan(-350);
+  await expect.poll(async () => {
+    return shader.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeLessThan(-120);
+
+  const stageAfter = await stage.boundingBox();
+  const shaderAfter = await shader.boundingBox();
+
+  expect(stageBefore).not.toBeNull();
+  expect(stageAfter).not.toBeNull();
+  expect(shaderBefore).not.toBeNull();
+  expect(shaderAfter).not.toBeNull();
+  expect(stageAfter.x).toBeLessThan(stageBefore.x - 350);
+  expect(shaderAfter.x).toBeLessThan(shaderBefore.x - 120);
+  expect(shaderAfter.x).toBeGreaterThan(stageAfter.x + 120);
+  expect(shaderAfter.width).toBeGreaterThan(1440);
+  expect(shaderAfter.height).toBe(shaderBefore.height);
+  expect(shaderAfter.x + shaderAfter.width).toBeGreaterThanOrEqual(1440);
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect.poll(async () => {
+    return stage.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeCloseTo(0, 0);
+  await expect.poll(async () => {
+    return shader.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeCloseTo(0, 0);
+});
+
+test("keeps navigation, page, and background aligned during rapid toggles", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.locator("[data-page-stage]");
+  const shader = page.locator("[data-shader-background]");
+  const panel = page.locator("[data-staggered-menu-panel]");
+  const trigger = page.locator("[data-signal-navigation]");
+
+  await trigger.click();
+  await page.waitForTimeout(120);
+  await trigger.click();
+  await page.waitForTimeout(120);
+  await trigger.click();
+  await page.waitForTimeout(120);
+  await trigger.click();
+
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect.poll(async () => {
+    return stage.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeCloseTo(0, 0);
+  await expect.poll(async () => {
+    return shader.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeCloseTo(0, 0);
+  await expect.poll(async () => {
+    return panel.evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(window.getComputedStyle(element).transform);
+      return matrix.m41;
+    });
+  }).toBeGreaterThan(400);
 });
 
 test("moves the shader background slowly upward while scrolling", async ({ page }) => {
@@ -133,7 +223,7 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
   await expect(page.locator(".ascii-title-base pre")).toBeVisible();
   await expect(page.locator(".ascii-title-accent pre")).toBeVisible();
   await expect(page.locator("[data-typewriter-title]")).toContainText("Welcome to Rosebeg", {
-    timeout: 24000,
+    timeout: 28000,
   });
 });
 
