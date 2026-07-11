@@ -42,6 +42,47 @@ test("anchors the shared I am a prefix before the yellow role appears", async ({
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
+test("keeps the shared role ASCII anchor stable across role changes", async ({ page }) => {
+  await page.goto("/");
+  const baseAscii = page.locator(".ascii-title-base [data-ascii-canvas]");
+
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Developer", {
+    timeout: 16000,
+  });
+  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Photographer");
+  await expect(baseAscii).toHaveAttribute("data-ascii-font-size", "4");
+  await expect(baseAscii).toHaveAttribute("data-resize-mode", "debounced");
+
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Researcher", {
+    timeout: 6000,
+  });
+  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Photographer");
+
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Photographer", {
+    timeout: 6000,
+  });
+  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Photographer");
+});
+
+test("recovers the ASCII title after narrowing and restoring the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const baseAscii = page.locator(".ascii-title-base [data-ascii-canvas]");
+  const title = page.locator("[data-typewriter-title]");
+
+  await expect(title).toContainText("This is Rosebeg", { timeout: 4000 });
+  await expect(baseAscii).toHaveAttribute("data-resize-mode", "debounced");
+  await expect(baseAscii).toHaveAttribute("data-ascii-font-size", "4");
+
+  await page.setViewportSize({ width: 900, height: 900 });
+  await expect.poll(async () => baseAscii.getAttribute("data-anchor-text")).toContain("\n");
+  await expect(baseAscii).toHaveAttribute("data-ascii-font-size", "3");
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(async () => baseAscii.getAttribute("data-anchor-text")).not.toContain("\n");
+  await expect(baseAscii).toHaveAttribute("data-ascii-font-size", "4");
+});
+
 test("briefly pauses on the shared I am a prefix before typing each role", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");

@@ -11,6 +11,9 @@ const compactAsciiLayoutTitle = `A personal
 portfolio
 by HarryX`;
 const highlightPrefix = "I am a ";
+const roleAsciiAnchor = "I am a Photographer";
+const compactRoleAsciiAnchor = `I am a
+Photographer`;
 const highlightPhrases = ["Developer", "Researcher", "Photographer"];
 const initialTitleState: ManifestoTitleState = {
   displayText: "",
@@ -50,37 +53,42 @@ function getAsciiRenderConfig(targetText: string, compact: boolean) {
   if (compact) {
     return {
       layoutText: compactAsciiLayoutTitle,
-      asciiFontSize: 5,
-      planeBaseHeight: 9,
+      asciiFontSize: 3,
+      planeBaseHeight: 11.6,
     };
   }
 
   if (targetText === "A personal portfolio by HarryX") {
     return {
       layoutText: "A personal portfolio by HarryX",
-      asciiFontSize: 6,
-      planeBaseHeight: 7.1,
+      asciiFontSize: 4,
+      planeBaseHeight: 5.2,
     };
   }
 
   if (targetText.startsWith("I am a ")) {
     return {
-      layoutText: "I am a Photographer",
-      asciiFontSize: 6,
+      layoutText: roleAsciiAnchor,
+      asciiFontSize: 4,
       planeBaseHeight: 9.4,
     };
   }
 
   return {
     layoutText: targetText || "This is Rosebeg",
-    asciiFontSize: 6,
+    asciiFontSize: 4,
     planeBaseHeight: 9.4,
   };
 }
 
 function getAsciiTitleLayers(text: string, targetText: string, compact: boolean) {
   const displayText = text || " ";
-  const anchorText = formatAsciiTitle(targetText || displayText, compact);
+  const targetOrDisplayText = targetText || displayText;
+  const anchorText = targetOrDisplayText.startsWith(highlightPrefix)
+    ? compact
+      ? compactRoleAsciiAnchor
+      : roleAsciiAnchor
+    : formatAsciiTitle(targetOrDisplayText, compact);
 
   if (!displayText.startsWith(highlightPrefix)) {
     return {
@@ -132,7 +140,7 @@ function App() {
   const asciiRender = getAsciiRenderConfig(titleState.targetText, isCompact);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 560px)");
+    const media = window.matchMedia("(max-width: 980px)");
     const sync = () => setIsCompact(media.matches);
     sync();
     media.addEventListener("change", sync);
@@ -157,6 +165,7 @@ function App() {
                 <span className="ascii-title-layer" data-ascii-title aria-hidden="true">
                   <span className="ascii-title-base">
                     <ASCIIText
+                      key={`base-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
                       text={asciiTitle.baseText}
                       layoutText={asciiRender.layoutText}
                       anchorText={asciiTitle.baseAnchorText}
@@ -165,11 +174,13 @@ function App() {
                       textColor="#fdf9f3"
                       planeBaseHeight={asciiRender.planeBaseHeight}
                       alignMode={asciiTitle.baseAlignMode}
+                      resizeMode="debounced"
                       enableWaves
                     />
                   </span>
                   <span className="ascii-title-accent" data-ascii-accent>
                     <ASCIIText
+                      key={`accent-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
                       text={asciiTitle.accentText || " "}
                       layoutText={asciiRender.layoutText}
                       anchorText={asciiTitle.accentAnchorText}
@@ -178,6 +189,7 @@ function App() {
                       textColor="#ffd866"
                       planeBaseHeight={asciiRender.planeBaseHeight}
                       alignMode="layout"
+                      resizeMode="debounced"
                       enableWaves
                     />
                   </span>

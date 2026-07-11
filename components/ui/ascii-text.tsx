@@ -467,6 +467,7 @@ export type ASCIITextProps = {
   planeBaseHeight?: number;
   enableWaves?: boolean;
   alignMode?: "center" | "anchored" | "layout";
+  resizeMode?: "responsive" | "debounced" | "initial";
 };
 
 export function ASCIIText({
@@ -479,11 +480,13 @@ export function ASCIIText({
   planeBaseHeight = 10,
   enableWaves = true,
   alignMode = "center",
+  resizeMode = "responsive",
 }: ASCIITextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const asciiRef = useRef<CanvasAscii | null>(null);
   const latestText = useRef(text);
   const latestAnchorText = useRef(anchorText);
+  const resizeTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     latestText.current = text;
@@ -532,27 +535,65 @@ export function ASCIIText({
       asciiRef.current = instance;
       instance.load();
 
-      resizeObserver = new ResizeObserver((entries) => {
-        if (!entries[0] || !asciiRef.current) {
-          return;
-        }
-        const { width: w, height: h } = entries[0].contentRect;
-        if (w > 0 && h > 0) {
-          asciiRef.current.setSize(w, h);
-        }
-      });
-      resizeObserver.observe(container);
+      if (resizeMode !== "initial") {
+        resizeObserver = new ResizeObserver((entries) => {
+          if (!entries[0] || !asciiRef.current) {
+            return;
+          }
+          const { width: w, height: h } = entries[0].contentRect;
+          if (w > 0 && h > 0) {
+            const applySize = () => {
+              asciiRef.current?.setSize(w, h);
+              resizeTimeout.current = null;
+            };
+
+            if (resizeMode === "debounced") {
+              if (resizeTimeout.current !== null) {
+                window.clearTimeout(resizeTimeout.current);
+              }
+              resizeTimeout.current = window.setTimeout(applySize, 180);
+              return;
+            }
+
+            applySize();
+          }
+        });
+        resizeObserver.observe(container);
+      }
     };
 
     setup();
 
     return () => {
       cancelled = true;
+      if (resizeTimeout.current !== null) {
+        window.clearTimeout(resizeTimeout.current);
+        resizeTimeout.current = null;
+      }
       resizeObserver?.disconnect();
       asciiRef.current?.dispose();
       asciiRef.current = null;
     };
-  }, [alignMode, asciiFontSize, enableWaves, layoutText, planeBaseHeight, textColor, textFontSize]);
+  }, [
+    alignMode,
+    asciiFontSize,
+    enableWaves,
+    layoutText,
+    planeBaseHeight,
+    resizeMode,
+    textColor,
+    textFontSize,
+  ]);
 
-  return <div className="ascii-text-container" data-align-mode={alignMode} data-ascii-canvas ref={containerRef} />;
+  return (
+    <div
+      className="ascii-text-container"
+      data-align-mode={alignMode}
+      data-ascii-canvas
+      data-ascii-font-size={asciiFontSize}
+      data-anchor-text={anchorText}
+      data-resize-mode={resizeMode}
+      ref={containerRef}
+    />
+  );
 }
