@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 
 import { cn } from "@/lib/utils";
 
-type ShuffleDirection = "left" | "right";
+type ShuffleDirection = "left" | "right" | "up" | "down";
 type ShuffleMode = "evenodd" | "normal";
 
 type ShuffleProps = {
@@ -21,30 +21,17 @@ type ShuffleProps = {
   loop?: boolean;
   loopDelay?: number;
   activeKey?: string | number;
+  playDelay?: number;
   className?: string;
 };
 
-const shuffleGlyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@";
-
-function getShuffleOrder(length: number, direction: ShuffleDirection, mode: ShuffleMode) {
-  const indices = Array.from({ length }, (_, index) => index);
-  const directional = direction === "left" ? indices.reverse() : indices;
-
-  if (mode !== "evenodd") {
-    return directional;
-  }
-
-  const even = directional.filter((index) => index % 2 === 0);
-  const odd = directional.filter((index) => index % 2 !== 0);
-  return [...even, ...odd];
-}
-
-function randomGlyph() {
-  return shuffleGlyphs[Math.floor(Math.random() * shuffleGlyphs.length)];
-}
-
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function getStripCharacters(character: string, shuffleTimes: number) {
+  const rolls = Math.max(1, Math.floor(shuffleTimes));
+  return Array.from({ length: rolls + 2 }, () => character);
 }
 
 export function Shuffle({
@@ -55,154 +42,285 @@ export function Shuffle({
   shuffleTimes = 1,
   ease = "power3.out",
   stagger = 0.03,
-  threshold = 0.1,
   triggerOnce = true,
   triggerOnHover = false,
   respectReducedMotion = true,
   loop = false,
   loopDelay = 0,
   activeKey,
+  playDelay = 0,
   className,
 }: ShuffleProps) {
-  const finalCharacters = useMemo(() => [...text], [text]);
-  const [displayCharacters, setDisplayCharacters] = useState(finalCharacters);
+  const characters = useMemo(() => [...text], [text]);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const wrapperRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const stripRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const loopTimeoutRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
   const hasTriggeredRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  const clearLoop = useCallback(() => {
-    if (loopTimeoutRef.current !== null) {
-      window.clearTimeout(loopTimeoutRef.current);
-      loopTimeoutRef.current = null;
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
+  }, []);
+
+  const resetTimeline = useCallback(() => {
+    timelineRef.current?.kill();
+    timelineRef.current = null;
+    isPlayingRef.current = false;
+  }, []);
+
+  const prepareStrips = useCallback(() => {
+    const isVertical = shuffleDirection === "up" || shuffleDirection === "down";
+    const rolls = Math.max(1, Math.floor(shuffleTimes));
+    const steps = rolls + 1;
+
+    stripRefs.current.forEach((strip, index) => {
+      const wrapper = wrapperRefs.current[index];
+      if (!wrapper || !strip) {
+        return;
+      }
+
+      const chars = Array.from(strip.children) as HTMLElement[];
+      const finalChar = chars[0];
+      if (!finalChar) {
+        return;
+      }
+
+      gsap.set(strip, { clearProps: "transform" });
+      const rect = finalChar.getBoundingClientRect();
+      const width = Math.max(1, rect.width);
+      const height = Math.max(1, rect.height);
+
+      wrapper.style.width = `${width}px`;
+      wrapper.style.height = isVertical ? `${height}px` : "";
+      chars.forEach((char) => {
+        char.style.width = `${width}px`;
+      });
+
+      let startX = 0;
+      let finalX = 0;
+      let startY = 0;
+      let finalY = 0;
+
+      if (shuffleDirection === "right") {
+        startX = -steps * width;
+      } else if (shuffleDirection === "left") {
+        finalX = -steps * width;
+      } else if (shuffleDirection === "down") {
+        startY = -steps * height;
+      } else if (shuffleDirection === "up") {
+        finalY = -steps * height;
+      }
+
+      strip.dataset.startX = String(startX);
+      strip.dataset.finalX = String(finalX);
+      strip.dataset.startY = String(startY);
+      strip.dataset.finalY = String(finalY);
+      gsap.set(strip, { x: startX, y: startY, force3D: true });
+    });
+  }, [shuffleDirection, shuffleTimes]);
+
+  const cleanupToStill = useCallback(() => {
+    stripRefs.current.forEach((strip) => {
+      if (!strip) {
+        return;
+      }
+      gsap.set(strip, { x: 0, y: 0, clearProps: "willChange" });
+    });
   }, []);
 
   const runShuffle = useCallback(
     (force = false) => {
-      clearLoop();
-      timelineRef.current?.kill();
+      if (!rootRef.current || !fontsLoaded || !text) {
+        return;
+      }
+
+      clearTimer();
+      resetTimeline();
 
       if (respectReducedMotion && prefersReducedMotion()) {
-        setDisplayCharacters(finalCharacters);
+        cleanupToStill();
+        setReady(true);
         return;
       }
 
       if (triggerOnce && hasTriggeredRef.current && !force) {
-        setDisplayCharacters(finalCharacters);
+        cleanupToStill();
+        setReady(true);
         return;
       }
 
       hasTriggeredRef.current = true;
-      const order = getShuffleOrder(finalCharacters.length, shuffleDirection, animationMode);
-      const orderPosition = new Map(order.map((index, position) => [index, position]));
-      const iterationBuckets = Math.max(1, shuffleTimes * 8);
-      const finalThreshold = Math.max(0, Math.min(0.9, 1 - threshold));
+      prepareStrips();
+      setReady(true);
+      isPlayingRef.current = true;
 
-      setDisplayCharacters((current) => {
-        return finalCharacters.map((character, index) => {
-          if (character === " ") {
-            return " ";
-          }
-          return current[index] && current[index] !== " " ? current[index] : randomGlyph();
+      const isVertical = shuffleDirection === "up" || shuffleDirection === "down";
+      const strips = stripRefs.current.filter(Boolean) as HTMLSpanElement[];
+      const addTween = (targets: HTMLSpanElement[], at: number) => {
+        if (!targets.length) {
+          return;
+        }
+
+        gsap.set(targets, {
+          x: isVertical ? 0 : (index, target) => Number((target as HTMLSpanElement).dataset.startX ?? 0),
+          y: isVertical ? (index, target) => Number((target as HTMLSpanElement).dataset.startY ?? 0) : 0,
         });
-      });
+
+        timeline.to(
+          targets,
+          {
+            duration,
+            ease,
+            force3D: true,
+            stagger: animationMode === "evenodd" ? stagger : 0,
+            x: isVertical ? 0 : (index, target) => Number((target as HTMLSpanElement).dataset.finalX ?? 0),
+            y: isVertical ? (index, target) => Number((target as HTMLSpanElement).dataset.finalY ?? 0) : 0,
+          },
+          at
+        );
+      };
 
       const timeline = gsap.timeline({
+        repeat: loop ? -1 : 0,
+        repeatDelay: loop ? loopDelay : 0,
         onComplete: () => {
-          setDisplayCharacters(finalCharacters);
-          if (loop) {
-            loopTimeoutRef.current = window.setTimeout(() => runShuffle(true), loopDelay * 1000);
+          isPlayingRef.current = false;
+          if (!loop) {
+            cleanupToStill();
           }
         },
       });
 
-      finalCharacters.forEach((character, index) => {
-        if (character === " ") {
-          return;
-        }
-
-        const proxy = { progress: 0, bucket: -1 };
-        timeline.to(
-          proxy,
-          {
-            progress: 1,
-            duration,
-            ease,
-            onUpdate: () => {
-              const nextBucket = Math.floor(proxy.progress * iterationBuckets);
-              const shouldResolve = proxy.progress >= finalThreshold;
-              if (nextBucket === proxy.bucket && !shouldResolve) {
-                return;
-              }
-
-              proxy.bucket = nextBucket;
-              setDisplayCharacters((current) => {
-                const next = [...current];
-                next[index] = shouldResolve ? character : randomGlyph();
-                return next;
-              });
-            },
-          },
-          (orderPosition.get(index) ?? index) * stagger
-        );
-      });
+      if (animationMode === "evenodd") {
+        const odd = strips.filter((_, index) => index % 2 === 1);
+        const even = strips.filter((_, index) => index % 2 === 0);
+        const oddTotal = duration + Math.max(0, odd.length - 1) * stagger;
+        const evenStart = odd.length ? oddTotal * 0.7 : 0;
+        addTween(odd, 0);
+        addTween(even, evenStart);
+      } else {
+        strips.forEach((strip, index) => addTween([strip], index * stagger));
+      }
 
       timelineRef.current = timeline;
     },
     [
       animationMode,
-      clearLoop,
+      cleanupToStill,
+      clearTimer,
       duration,
       ease,
-      finalCharacters,
+      fontsLoaded,
       loop,
       loopDelay,
+      prepareStrips,
+      resetTimeline,
       respectReducedMotion,
       shuffleDirection,
-      shuffleTimes,
       stagger,
-      threshold,
+      text,
       triggerOnce,
     ]
   );
 
-  useEffect(() => {
-    hasTriggeredRef.current = false;
-    setDisplayCharacters(finalCharacters);
-  }, [finalCharacters]);
+  const scheduleShuffle = useCallback(
+    (force = false, delay = playDelay) => {
+      clearTimer();
+      timerRef.current = window.setTimeout(() => runShuffle(force), Math.max(0, delay) * 1000);
+    },
+    [clearTimer, playDelay, runShuffle]
+  );
 
   useEffect(() => {
-    if (activeKey === undefined) {
-      runShuffle(false);
+    if ("fonts" in document) {
+      if (document.fonts.status === "loaded") {
+        setFontsLoaded(true);
+      } else {
+        document.fonts.ready.then(() => setFontsLoaded(true));
+      }
       return;
     }
 
-    runShuffle(true);
-  }, [activeKey, runShuffle]);
+    setFontsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    hasTriggeredRef.current = false;
+    setReady(false);
+  }, [text]);
+
+  useEffect(() => {
+    if (!fontsLoaded) {
+      return;
+    }
+
+    scheduleShuffle(activeKey !== undefined);
+  }, [activeKey, fontsLoaded, scheduleShuffle]);
 
   useEffect(() => {
     return () => {
-      clearLoop();
-      timelineRef.current?.kill();
+      clearTimer();
+      resetTimeline();
     };
-  }, [clearLoop]);
+  }, [clearTimer, resetTimeline]);
+
+  const handlePointerEnter = () => {
+    if (!triggerOnHover || isPlayingRef.current) {
+      return;
+    }
+
+    scheduleShuffle(true, 0);
+  };
 
   return (
     <span
-      className={cn("shuffle-text", className)}
+      ref={rootRef}
+      className={cn("shuffle-parent", ready && "is-ready", className)}
       aria-hidden="true"
       data-shuffle-text={text}
-      onPointerEnter={triggerOnHover ? () => runShuffle(true) : undefined}
+      data-shuffle-delay={playDelay}
+      data-shuffle-hover={triggerOnHover ? "true" : "false"}
+      onPointerEnter={handlePointerEnter}
     >
-      {displayCharacters.map((character, index) => (
-        <span
-          className={character === " " ? "shuffle-char is-space" : "shuffle-char"}
-          data-shuffle-char
-          key={`${text}-${index}`}
-        >
-          {character}
-        </span>
-      ))}
+      {characters.map((character, index) => {
+        if (character === " ") {
+          return (
+            <span className="shuffle-char is-space" data-shuffle-char key={`${text}-${index}`}>
+              {" "}
+            </span>
+          );
+        }
+
+        return (
+          <span
+            className="shuffle-char-wrapper"
+            data-shuffle-char-wrapper
+            key={`${text}-${index}`}
+            ref={(element) => {
+              wrapperRefs.current[index] = element;
+            }}
+          >
+            <span
+              ref={(element) => {
+                stripRefs.current[index] = element;
+              }}
+            >
+              {getStripCharacters(character, shuffleTimes).map((stripCharacter, stripIndex) => (
+                <span className="shuffle-char" data-shuffle-char key={`${text}-${index}-${stripIndex}`}>
+                  {stripCharacter}
+                </span>
+              ))}
+            </span>
+          </span>
+        );
+      })}
     </span>
   );
 }

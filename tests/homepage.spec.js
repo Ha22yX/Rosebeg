@@ -4,7 +4,8 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Rosebeg digital manifesto" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Who" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Photography" })).toBeVisible();
+  await expect(page.locator("[data-infinite-menu]")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Photography" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Social" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
 });
@@ -114,9 +115,19 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await expect(page.getByRole("menuitem", { name: /photos/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
   await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
-  await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char]")).toHaveCount(6);
+  await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char-wrapper]")).toHaveCount(6);
+  await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char]")).toHaveCount(18);
+  await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-delay", "0");
+  await expect(page.locator("[data-shuffle-text='ABOUT']")).toHaveAttribute("data-shuffle-delay", "0.16");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "0");
+  await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-hover", "false");
 
-  await page.getByRole("menuitem", { name: /photos/i }).click();
+  const photosLink = page.getByRole("menuitem", { name: /photos/i });
+  const photosText = page.locator(".staggered-menu-link:has([data-shuffle-text='PHOTOS']) .staggered-menu-link-text");
+  await photosLink.hover();
+  await expect.poll(async () => photosText.evaluate((element) => getComputedStyle(element).transform)).toContain("matrix3d");
+
+  await photosLink.click();
   await expect(page).toHaveURL(/#works$/);
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
@@ -271,30 +282,99 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
 
 test("exposes photography menu items and social placeholders", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("[data-infinite-menu]")).toBeVisible();
-
-  for (const title of [
-    "Stone Gate",
-    "Underline Skyline",
-    "Crosswalk Heat",
-    "Library Drift",
-    "Harbor Weather",
-    "Window Afterimage",
-  ]) {
-    await expect(page.getByRole("button", { name: `Open ${title}` }).first()).toBeVisible();
-  }
+  const menu = page.locator("[data-infinite-menu]");
+  await expect(menu).toBeVisible();
+  await expect(page.locator("#infinite-grid-menu-canvas")).toBeVisible();
+  await expect(page.locator(".action-button.active")).toBeVisible();
+  await expect(menu).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(menu).toHaveCSS("border-top-width", "0px");
 
   for (const label of ["GitHub", "X", "Instagram", "Email"]) {
     await expect(page.getByRole("link", { name: label })).toBeVisible();
   }
 });
 
-test("opens a photography circle into a full image and closes on blank click", async ({ page }) => {
+test("turns the photography menu as a sphere while dragging and restores on release", async ({ page }) => {
   await page.goto("/");
-  await page.locator(".infinite-menu-stage").hover();
-  await page.getByRole("button", { name: "Open Stone Gate" }).first().click();
+  const menu = page.locator("[data-infinite-menu]");
+  const canvas = page.locator("#infinite-grid-menu-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 180, box.y + box.height / 2 + 70, { steps: 8 });
+  await expect(menu).toHaveAttribute("data-moving", "true");
+  await page.mouse.up();
+  await expect(menu).toHaveAttribute("data-moving", "false", { timeout: 5000 });
+  await expect(page.locator(".action-button.active")).toBeVisible();
+});
+
+test("keeps the photography sphere stable when the pointer crosses the canvas boundary", async ({ page }) => {
+  await page.goto("/");
+  const menu = page.locator("[data-infinite-menu]");
+  const canvas = page.locator("#infinite-grid-menu-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
+
+  await canvas.dispatchEvent("pointerdown", {
+    pointerId: 7,
+    pointerType: "mouse",
+    clientX: startX,
+    clientY: startY,
+    buttons: 1,
+    bubbles: true,
+  });
+  await canvas.dispatchEvent("pointermove", {
+    pointerId: 7,
+    pointerType: "mouse",
+    clientX: startX + 180,
+    clientY: startY + 50,
+    buttons: 1,
+    bubbles: true,
+  });
+  await expect(menu).toHaveAttribute("data-moving", "true");
+
+  await canvas.dispatchEvent("pointerleave", {
+    pointerId: 7,
+    pointerType: "mouse",
+    clientX: box.x + box.width + 80,
+    clientY: startY + 40,
+    buttons: 1,
+    bubbles: true,
+  });
+  await canvas.dispatchEvent("pointermove", {
+    pointerId: 7,
+    pointerType: "mouse",
+    clientX: startX - 160,
+    clientY: startY - 40,
+    buttons: 1,
+    bubbles: true,
+  });
+  await expect(menu).toHaveAttribute("data-moving", "true");
+
+  await canvas.dispatchEvent("pointerup", {
+    pointerId: 7,
+    pointerType: "mouse",
+    clientX: startX - 160,
+    clientY: startY - 40,
+    buttons: 0,
+    bubbles: true,
+  });
+});
+
+test("expands the active photography circle into an in-page full image", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".action-button.active")).toBeVisible();
+
+  await page.locator(".action-button.active").click();
   await expect(page.locator("[data-photo-lightbox]")).toBeVisible();
-  await expect(page.getByRole("img", { name: "Stone Gate" })).toBeVisible();
+  await expect(page.locator(".photo-lightbox-visual img")).toHaveAttribute("src", /\/assets\/photography\/.*-large\.jpg$/);
 
   await page.locator("[data-photo-lightbox]").click({ position: { x: 10, y: 10 } });
   await expect(page.locator("[data-photo-lightbox]")).toHaveCount(0);

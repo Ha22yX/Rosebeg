@@ -24,42 +24,42 @@ const initialTitleState: ManifestoTitleState = {
 const photographyItems: InfiniteMenuItem[] = [
   {
     image: "/assets/photography/signal-plain-thumb.jpg",
-    fullImage: "/assets/photography/signal-plain-large.jpg",
+    link: "/assets/photography/signal-plain-large.jpg",
     title: "Stone Gate",
     description: "A quiet threshold held in old masonry and winter light.",
     aspect: 2400 / 1800,
   },
   {
     image: "/assets/photography/violet-street-thumb.jpg",
-    fullImage: "/assets/photography/violet-street-large.jpg",
+    link: "/assets/photography/violet-street-large.jpg",
     title: "Underline Skyline",
     description: "A city cut by shadow, steel, and a distant tower.",
     aspect: 2400 / 1800,
   },
   {
     image: "/assets/photography/quiet-edge-thumb.jpg",
-    fullImage: "/assets/photography/quiet-edge-large.jpg",
+    link: "/assets/photography/quiet-edge-large.jpg",
     title: "Crosswalk Heat",
     description: "Street geometry washed in red light and noon glare.",
     aspect: 2400 / 1800,
   },
   {
     image: "/assets/photography/night-current-thumb.jpg",
-    fullImage: "/assets/photography/night-current-large.jpg",
+    link: "/assets/photography/night-current-large.jpg",
     title: "Library Drift",
     description: "A soft corridor of books dissolving into focus.",
     aspect: 2400 / 1173,
   },
   {
     image: "/assets/photography/glass-weather-thumb.jpg",
-    fullImage: "/assets/photography/glass-weather-large.jpg",
+    link: "/assets/photography/glass-weather-large.jpg",
     title: "Harbor Weather",
     description: "Blue air, water, and towers held in a clean horizon.",
     aspect: 2400 / 1597,
   },
   {
     image: "/assets/photography/afterimage-thumb.jpg",
-    fullImage: "/assets/photography/afterimage-large.jpg",
+    link: "/assets/photography/afterimage-large.jpg",
     title: "Window Afterimage",
     description: "The city reduced to panes, silhouettes, and late light.",
     aspect: 1655 / 2400,
@@ -251,8 +251,8 @@ function App() {
           </div>
         </section>
 
-          <section id="works" className="section-panel photography-panel" aria-labelledby="works-title">
-            <InfiniteMenu items={photographyItems} scale={1} headingId="works-title" />
+          <section id="works" className="section-panel photography-panel" aria-label="Photography">
+            <InfiniteMenu items={photographyItems} scale={1} />
           </section>
 
         <section id="social" className="section-panel social-panel" aria-labelledby="social-title">

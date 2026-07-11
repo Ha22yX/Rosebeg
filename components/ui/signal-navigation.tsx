@@ -149,11 +149,12 @@ export function SignalNavigation({
                   stagger={0.03}
                   threshold={0.1}
                   triggerOnce={true}
-                  triggerOnHover
+                  triggerOnHover={false}
                   respectReducedMotion={true}
                   loop={false}
                   loopDelay={0}
                   activeKey={`${shuffleKey}-${item.label}`}
+                  playDelay={index % 2 === 0 ? 0 : 0.16}
                 />
               </span>
               <span className="staggered-menu-number">{String(index + 1).padStart(2, "0")}</span>
