@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ type ShuffleProps = {
   enabled?: boolean;
   className?: string;
 };
+
+type StripPlacement = "start" | "still";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -79,7 +81,7 @@ export function Shuffle({
     isPlayingRef.current = false;
   }, []);
 
-  const prepareStrips = useCallback(() => {
+  const prepareStrips = useCallback((placement: StripPlacement = "start") => {
     const isVertical = shuffleDirection === "up" || shuffleDirection === "down";
     const rolls = Math.max(1, Math.floor(shuffleTimes));
     const steps = rolls + 1;
@@ -126,18 +128,23 @@ export function Shuffle({
       strip.dataset.finalX = String(finalX);
       strip.dataset.startY = String(startY);
       strip.dataset.finalY = String(finalY);
-      gsap.set(strip, { x: startX, y: startY, force3D: true });
+      gsap.set(strip, {
+        x: placement === "start" ? startX : 0,
+        y: placement === "start" ? startY : 0,
+        force3D: true,
+      });
     });
   }, [shuffleDirection, shuffleTimes]);
 
   const cleanupToStill = useCallback(() => {
+    prepareStrips("still");
     stripRefs.current.forEach((strip) => {
       if (!strip) {
         return;
       }
       gsap.set(strip, { x: 0, y: 0, clearProps: "willChange" });
     });
-  }, []);
+  }, [prepareStrips]);
 
   const runShuffle = useCallback(
     (force = false) => {
@@ -161,7 +168,7 @@ export function Shuffle({
       }
 
       hasTriggeredRef.current = true;
-      prepareStrips();
+      prepareStrips("start");
       setReady(true);
       isPlayingRef.current = true;
 
@@ -264,19 +271,26 @@ export function Shuffle({
     setReady(false);
   }, [text]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled) {
       clearTimer();
       resetTimeline();
-      cleanupToStill();
-      setReady(true);
+      if (fontsLoaded) {
+        cleanupToStill();
+        setReady(true);
+      } else {
+        setReady(false);
+      }
       return;
     }
 
     if (!fontsLoaded) {
+      setReady(false);
       return;
     }
 
+    cleanupToStill();
+    setReady(true);
     scheduleShuffle(activeKey !== undefined);
   }, [activeKey, cleanupToStill, clearTimer, enabled, fontsLoaded, resetTimeline, scheduleShuffle]);
 

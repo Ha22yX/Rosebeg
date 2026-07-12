@@ -111,6 +111,12 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
 
   await trigger.click();
   await expect(page.locator("[data-staggered-menu-panel]")).toBeVisible();
+  await page.waitForTimeout(50);
+  const initiallyUnpreparedShuffleWrappers = await page
+    .locator("[data-shuffle-enabled='true'] [data-shuffle-char-wrapper]")
+    .evaluateAll((wrappers) => wrappers.filter((wrapper) => !wrapper.style.width).length);
+  expect(initiallyUnpreparedShuffleWrappers).toBe(0);
+
   await expect(page.getByText("Socials")).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /photos/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
@@ -124,6 +130,12 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1");
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "true");
   await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-hover", "false");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveClass(/is-ready/);
+
+  const settledUnpreparedShuffleWrappers = await page
+    .locator("[data-shuffle-enabled='true'] [data-shuffle-char-wrapper]")
+    .evaluateAll((wrappers) => wrappers.filter((wrapper) => !wrapper.style.width).length);
+  expect(settledUnpreparedShuffleWrappers).toBe(0);
 
   const photosLink = page.getByRole("menuitem", { name: /photos/i });
   const photosText = page.locator(".staggered-menu-link:has([data-shuffle-text='PHOTOS']) .staggered-menu-link-text");
