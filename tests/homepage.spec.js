@@ -23,6 +23,24 @@ test("embeds the selected code works card swap section without its standalone ba
   await expect(frame.locator(".source-button").first()).toBeVisible();
 });
 
+test("gives the selected code works stack enough vertical room to avoid a hard bottom crop", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+
+  const bottomReserve = await frame.locator("[data-project-card-swap-section]").evaluate(() => {
+    const section = document.querySelector("[data-project-card-swap-section]");
+    const cards = [...document.querySelectorAll(".card-frame")];
+    const sectionRect = section.getBoundingClientRect();
+    const lowestCardBottom = Math.max(...cards.map((card) => card.getBoundingClientRect().bottom));
+    return sectionRect.bottom - lowestCardBottom;
+  });
+
+  expect(bottomReserve).toBeGreaterThan(90);
+});
+
 test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");
@@ -195,6 +213,25 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
     .toBe("native");
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "false");
+});
+
+test("smoothly scrolls to navigation targets instead of jumping instantly", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+
+  const targetTop = await page.locator("#photos").evaluate((element) => element.offsetTop);
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("menuitem", { name: "Photos" }).click();
+
+  await page.waitForTimeout(80);
+  const duringScroll = await page.evaluate(() => window.scrollY);
+  expect(duringScroll).toBeGreaterThan(0);
+  expect(duringScroll).toBeLessThan(targetTop - 180);
+
+  await expect
+    .poll(async () => page.evaluate((expectedTop) => Math.abs(window.scrollY - expectedTop), targetTop), { timeout: 1800 })
+    .toBeLessThan(8);
+  await expect(page).toHaveURL(/#photos$/);
 });
 
 test("pushes the page and oversized shared shader background when navigation opens", async ({ page }) => {

@@ -704,7 +704,7 @@ a {
 .code-works-panel {
   width: 100vw;
   max-width: none;
-  min-height: 100dvh;
+  min-height: clamp(940px, 112dvh, 1180px);
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   padding-block: 0;
@@ -712,10 +712,12 @@ a {
 
 .code-works-frame {
   width: 100%;
-  height: clamp(760px, 100dvh, 1040px);
+  height: clamp(940px, 112dvh, 1180px);
   display: block;
   border: 0;
   background: transparent;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 170px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 170px), transparent 100%);
 }
 
 .photography-panel {

@@ -154,7 +154,7 @@ svg {
 
 .card-swap-container {
   position: absolute;
-  top: 50%;
+  top: calc(50% - clamp(58px, 6vh, 92px));
   left: 50%;
   --portfolio-stack-offset-x: clamp(220px, 18.5vw, 360px);
   --stack-center-x: -54px;

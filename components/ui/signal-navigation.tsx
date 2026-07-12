@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 
 import { Shuffle } from "@/components/ui/shuffle";
@@ -34,6 +34,7 @@ export function SignalNavigation({
   const panelRef = useRef<HTMLElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const socialRefs = useRef<HTMLAnchorElement[]>([]);
+  const scrollAnimationRef = useRef<number | null>(null);
   const isOpen = controlledIsOpen ?? internalIsOpen;
 
   const setMenuOpen = (nextIsOpen: boolean) => {
@@ -46,6 +47,66 @@ export function SignalNavigation({
 
   const closeMenu = () => setMenuOpen(false);
   const toggleMenu = () => setMenuOpen(!isOpen);
+
+  const stopNavigationScroll = () => {
+    if (scrollAnimationRef.current !== null) {
+      window.cancelAnimationFrame(scrollAnimationRef.current);
+      scrollAnimationRef.current = null;
+    }
+  };
+
+  const scrollToHashTarget = (hash: string) => {
+    const target = document.querySelector(hash);
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    stopNavigationScroll();
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const startY = window.scrollY;
+    const targetY = Math.max(0, target.getBoundingClientRect().top + window.scrollY);
+
+    window.history.pushState(null, "", hash);
+
+    if (prefersReducedMotion) {
+      window.scrollTo(0, targetY);
+      return;
+    }
+
+    const distance = targetY - startY;
+    const duration = Math.min(1250, Math.max(780, Math.abs(distance) * 0.32));
+    const startedAt = performance.now();
+    document.documentElement.dataset.navigationScrollState = "scrolling";
+
+    const easeInOutCubic = (progress: number) =>
+      progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      window.scrollTo(0, startY + distance * easeInOutCubic(progress));
+
+      if (progress < 1) {
+        scrollAnimationRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      window.scrollTo(0, targetY);
+      delete document.documentElement.dataset.navigationScrollState;
+      scrollAnimationRef.current = null;
+    };
+
+    scrollAnimationRef.current = window.requestAnimationFrame(tick);
+  };
+
+  const handleMenuLinkClick = (event: MouseEvent<HTMLAnchorElement>, link: string) => {
+    if (link.startsWith("#")) {
+      event.preventDefault();
+      scrollToHashTarget(link);
+    }
+
+    closeMenu();
+  };
 
   useLayoutEffect(() => {
     if (backdropRef.current) {
@@ -63,6 +124,8 @@ export function SignalNavigation({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => () => stopNavigationScroll(), []);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -139,7 +202,7 @@ export function SignalNavigation({
               aria-label={item.ariaLabel}
               className="staggered-menu-link"
               key={item.label}
-              onClick={closeMenu}
+              onClick={(event) => handleMenuLinkClick(event, item.link)}
             >
               <span className="staggered-menu-link-text">
                 <Shuffle
