@@ -172,7 +172,10 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
 
   await photosLink.click();
   await expect(page).toHaveURL(/#works$/);
-  await expect.poll(async () => page.evaluate(() => document.documentElement.dataset.smoothScrollState)).toBe("running");
+  await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await expect
+    .poll(async () => page.evaluate(() => document.documentElement.dataset.smoothScrollState ?? "native"))
+    .toBe("native");
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "false");
 });
@@ -284,35 +287,22 @@ test("moves the shader background slowly upward while scrolling", async ({ page 
   await expect.poll(async () => Number(await canvas.getAttribute("data-parallax-offset"))).toBeGreaterThan(before + 0.05);
 });
 
-test("smoothly chases wheel scroll input with a capped velocity", async ({ page }) => {
+test("uses native wheel scrolling without the smooth chase controller", async ({ page }) => {
   await page.goto("/");
+  const before = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 1400);
 
-  await expect.poll(async () => page.evaluate(() => document.documentElement.dataset.smoothScrollState)).toBe("running");
-
-  const sample = await page.evaluate(() => ({
-    position: Number(document.documentElement.dataset.smoothScrollPosition),
-    target: Number(document.documentElement.dataset.smoothScrollTarget),
-    velocity: Math.abs(Number(document.documentElement.dataset.smoothScrollVelocity)),
-    maxSpeed: Number(document.documentElement.dataset.smoothScrollMaxSpeed),
-    scrollY: window.scrollY,
-  }));
-
-  expect(sample.target).toBeGreaterThan(sample.position);
-  expect(sample.velocity).toBeLessThanOrEqual(sample.maxSpeed + 1);
-  expect(sample.scrollY).toBeGreaterThan(0);
-  expect(sample.scrollY).toBeLessThan(sample.target);
-
-  const visualRemainder = await page.evaluate(() =>
-    document.documentElement.style.getPropertyValue("--smooth-scroll-remainder")
-  );
-  expect(visualRemainder).toMatch(/px$/);
-  expect(Math.abs(Number.parseFloat(visualRemainder))).toBeLessThan(1);
-  await expect(page.locator(".site-shell")).not.toHaveCSS("transform", "none");
-
-  await expect.poll(async () => page.evaluate(() => document.documentElement.dataset.smoothScrollState), {
-    timeout: 8000,
-  }).toBe("idle");
+  await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(before + 500);
+  await expect(page.locator(".site-shell")).toHaveCSS("transform", "none");
+  await expect
+    .poll(async () =>
+      page.evaluate(() => ({
+        remainder: document.documentElement.style.getPropertyValue("--smooth-scroll-remainder"),
+        state: document.documentElement.dataset.smoothScrollState ?? "native",
+        target: document.documentElement.dataset.smoothScrollTarget ?? "",
+      }))
+    )
+    .toEqual({ remainder: "", state: "native", target: "" });
 });
 
 test("keeps the shader background continuously flowing while idle", async ({ page }) => {
