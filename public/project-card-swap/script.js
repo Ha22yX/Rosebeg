@@ -956,6 +956,19 @@ function placeNow(el, slot, skew) {
   });
 }
 
+function getSkewFittedRect(rect, skewY = 0) {
+  const shear = Math.abs(Math.tan((Number(skewY) * Math.PI) / 180));
+  const skewHeight = shear * rect.width;
+  const height = Math.max(1, rect.height - skewHeight);
+
+  return {
+    left: rect.left,
+    top: rect.top + skewHeight / 2,
+    width: rect.width,
+    height
+  };
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -1886,8 +1899,24 @@ class CardSwap {
     this.ensureCardContent(card);
     this.lockProgressAnimation();
 
-    const startRect = card.getBoundingClientRect();
+    const frame = this.getFrame(card);
+    const startRect = frame?.getBoundingClientRect() ?? card.getBoundingClientRect();
     const targetRect = this.getExpandedTargetRect();
+    const startSkewY = Number(gsap.getProperty(card, "skewY")) || this.skewAmount;
+    const fittedStartRect = getSkewFittedRect(startRect, startSkewY);
+    const openingTransform = {
+      transformPerspective: 1200,
+      x: 0,
+      y: 0,
+      z: 0,
+      xPercent: 0,
+      yPercent: 0,
+      rotateX: 0,
+      rotateY: 0,
+      rotateZ: 0,
+      skewY: startSkewY,
+      scale: 1
+    };
 
     this.expandedCard = card;
     this.expandedSnapshot = {
@@ -1896,6 +1925,7 @@ class CardSwap {
       nextSibling: card.nextSibling,
       style: card.getAttribute("style") || "",
       rect: startRect,
+      compactSkewY: startSkewY,
       progress: this.currentProgress
     };
 
@@ -1903,21 +1933,22 @@ class CardSwap {
     this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "true");
     this.cards.forEach((candidate) => candidate.classList.toggle("is-expansion-muted", candidate !== card));
     card.classList.add("is-expanded", "is-expanding");
+    card.dataset.expansionTilt = "active";
     card.classList.remove("is-hovered");
     this.updateWindowToggle(card, true);
     this.root.body.append(card);
 
     gsap.killTweensOf(card);
     card.style.position = "fixed";
-    card.style.left = `${startRect.left}px`;
-    card.style.top = `${startRect.top}px`;
-    card.style.width = `${startRect.width}px`;
-    card.style.height = `${startRect.height}px`;
-    card.style.transform = "none";
+    card.style.left = `${fittedStartRect.left}px`;
+    card.style.top = `${fittedStartRect.top}px`;
+    card.style.width = `${fittedStartRect.width}px`;
+    card.style.height = `${fittedStartRect.height}px`;
     card.style.zIndex = "5000";
     card.style.opacity = "1";
-    card.style.skewY = "0deg";
     card.style.pointerEvents = "auto";
+    card.style.transformOrigin = "center center";
+    gsap.set(card, openingTransform);
 
     this.expandTween?.kill();
     this.expandTween = gsap.to(card, {
@@ -1925,12 +1956,24 @@ class CardSwap {
       top: targetRect.top,
       width: targetRect.width,
       height: targetRect.height,
+      x: 0,
+      y: 0,
+      z: 0,
+      xPercent: 0,
+      yPercent: 0,
+      rotateX: 0,
+      rotateY: 0,
+      rotateZ: 0,
+      skewY: 0,
+      scale: 1,
       duration: 0.7,
       ease: "power3.inOut",
       overwrite: true,
       onComplete: () => {
         card.classList.remove("is-expanding");
         card.classList.add("is-expanded-settled");
+        card.dataset.expansionTilt = "settled";
+        card.style.transform = "none";
         this.expandTween = null;
       }
     });
@@ -1940,23 +1983,37 @@ class CardSwap {
     const card = this.expandedCard;
     const snapshot = this.expandedSnapshot;
     if (!card || !snapshot || this.isRestoringExpandedCard) return;
+    const fittedCompactRect = getSkewFittedRect(snapshot.rect, snapshot.compactSkewY ?? this.skewAmount);
 
     this.isRestoringExpandedCard = true;
     card.classList.remove("is-expanded-settled", "is-expanding");
     card.classList.add("is-restoring");
+    card.dataset.expansionTilt = "restoring";
     this.updateWindowToggle(card, false);
 
     this.expandTween?.kill();
     this.expandTween = gsap.to(card, {
-      left: snapshot.rect.left,
-      top: snapshot.rect.top,
-      width: snapshot.rect.width,
-      height: snapshot.rect.height,
+      left: fittedCompactRect.left,
+      top: fittedCompactRect.top,
+      width: fittedCompactRect.width,
+      height: fittedCompactRect.height,
+      transformPerspective: 1200,
+      x: 0,
+      y: 0,
+      z: 0,
+      xPercent: 0,
+      yPercent: 0,
+      rotateX: 0,
+      rotateY: 0,
+      rotateZ: 0,
+      skewY: snapshot.compactSkewY ?? this.skewAmount,
+      scale: 1,
       duration: 0.58,
       ease: "power3.inOut",
       overwrite: true,
       onComplete: () => {
         card.classList.remove("is-expanded", "is-restoring");
+        delete card.dataset.expansionTilt;
         this.cards.forEach((candidate) => candidate.classList.remove("is-expansion-muted"));
         if (snapshot.parent) {
           if (snapshot.nextSibling?.parentNode === snapshot.parent) {

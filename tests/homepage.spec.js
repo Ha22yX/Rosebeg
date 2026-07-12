@@ -88,6 +88,9 @@ test("maximizes a selected code works card from the same window node", async ({ 
   await expect(frontCard).toBeVisible();
   const toggle = frame.locator(".card.is-front").first().getByRole("button", { name: /maximize project window/i });
   await expect(toggle).toBeVisible();
+  const compactFrameBox = await frontCard.locator(".card-frame").evaluate((frameEl) =>
+    frameEl.getBoundingClientRect().toJSON()
+  );
   await toggle.dispatchEvent("pointerover", { bubbles: true, pointerType: "mouse" });
   await expect(toggle).toHaveAttribute("data-hover-ready", "true");
   const compactBox = await toggle.evaluate((button) => {
@@ -106,15 +109,68 @@ test("maximizes a selected code works card from the same window node", async ({ 
 
   const expandedBox = await expandedCard.boundingBox();
   expect(expandedBox).not.toBeNull();
-  expect(expandedBox.width).toBeGreaterThan(compactBox.width * 1.12);
   expect(expandedBox.height).toBeGreaterThan(compactBox.height * 1.08);
+  expect(expandedBox.width * expandedBox.height).toBeGreaterThan(compactBox.width * compactBox.height * 1.08);
   await expect(expandedCard).toHaveCSS("position", "fixed");
   await expect(expandedCard).toHaveCSS("transform", "none");
 
   await frame.locator("[data-project-card-swap-section]").click({ position: { x: 12, y: 12 } });
   await expect(frame.locator(".card.is-expanded")).toHaveCount(0);
   await expect(stack).toHaveAttribute("data-expanded", "false");
-  await expect(frame.locator(".card[data-test-expanded-origin='true']")).toBeVisible();
+  const restoredCard = frame.locator(".card[data-test-expanded-origin='true']");
+  await expect(restoredCard).toBeVisible();
+  const restoredFrameBox = await restoredCard.locator(".card-frame").evaluate((frameEl) =>
+    frameEl.getBoundingClientRect().toJSON()
+  );
+  expect(Math.abs(restoredFrameBox.left - compactFrameBox.left)).toBeLessThan(2);
+  expect(Math.abs(restoredFrameBox.top - compactFrameBox.top)).toBeLessThan(2);
+  expect(Math.abs(restoredFrameBox.width - compactFrameBox.width)).toBeLessThan(2);
+  expect(Math.abs(restoredFrameBox.height - compactFrameBox.height)).toBeLessThan(2);
+});
+
+test("keeps the works card tilted at the start of the maximize animation", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+  await frame.locator("[data-card-swap]").evaluate(() => {
+    window.rosebegExplorerCards?.cardSwap?.pause();
+  });
+  await expect(frame.locator(".card.is-front [data-project-window-toggle]").first()).toBeVisible();
+
+  const initialState = await frame.locator(".card.is-front").first().evaluate((card) => {
+    const frameEl = card.querySelector(".card-frame");
+    const content = card.querySelector(".content");
+    const before = frameEl?.getBoundingClientRect();
+    const beforeFrameStyle = frameEl ? getComputedStyle(frameEl) : null;
+    const beforeContentStyle = content ? getComputedStyle(content) : null;
+    const button = card.querySelector("[data-project-window-toggle]");
+    button?.click();
+    const after = frameEl?.getBoundingClientRect();
+    const afterFrameStyle = frameEl ? getComputedStyle(frameEl) : null;
+    const afterContentStyle = content ? getComputedStyle(content) : null;
+    return {
+      transform: getComputedStyle(card).transform,
+      tilt: card.getAttribute("data-expansion-tilt"),
+      before: before?.toJSON(),
+      after: after?.toJSON(),
+      beforeRadius: beforeFrameStyle?.borderRadius,
+      afterRadius: afterFrameStyle?.borderRadius,
+      beforeGrid: beforeContentStyle?.gridTemplateColumns,
+      afterGrid: afterContentStyle?.gridTemplateColumns
+    };
+  });
+
+  expect(initialState.transform).not.toBe("none");
+  expect(initialState.tilt).toBe("active");
+  expect(Math.abs(initialState.after.left - initialState.before.left)).toBeLessThan(2);
+  expect(Math.abs(initialState.after.top - initialState.before.top)).toBeLessThan(2);
+  expect(Math.abs(initialState.after.width - initialState.before.width)).toBeLessThan(2);
+  expect(Math.abs(initialState.after.height - initialState.before.height)).toBeLessThan(2);
+  expect(initialState.afterRadius).toBe(initialState.beforeRadius);
+  expect(initialState.afterGrid).toBe(initialState.beforeGrid);
+  await expect(frame.locator(".card.is-expanded-settled")).toHaveCSS("transform", "none", { timeout: 3000 });
 });
 
 test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {

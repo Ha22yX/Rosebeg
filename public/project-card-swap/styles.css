@@ -1230,7 +1230,6 @@ button.window-button {
 .card.is-expanded,
 .card.is-restoring,
 .card.is-expanding {
-  transform: none !important;
   transform-style: flat;
   pointer-events: auto;
   filter: none !important;
@@ -1252,18 +1251,21 @@ button.window-button {
   --speed-scale-y: 1;
   --rebound-scale-x: 1;
   --rebound-scale-y: 1;
+  transform: none !important;
+}
+
+.card.is-expanded-settled .card-frame {
   border-color: rgba(147, 243, 255, 0.36);
   border-radius: 13px;
   box-shadow:
     0 42px 120px rgba(0, 0, 0, 0.7),
     0 0 0 1px rgba(147, 243, 255, 0.14),
     0 0 72px color-mix(in srgb, var(--project-accent, #93f3ff) 24%, transparent);
-  transform: none !important;
 }
 
-.card.is-expanded .toolbar,
-.card.is-expanded .content,
-.card.is-expanded .statusbar,
+.card.is-expanded-settled .toolbar,
+.card.is-expanded-settled .content,
+.card.is-expanded-settled .statusbar,
 .card.is-restoring .toolbar,
 .card.is-restoring .content,
 .card.is-restoring .statusbar,
@@ -1273,45 +1275,33 @@ button.window-button {
   opacity: 1 !important;
 }
 
-.card.is-expanded .tab,
-.card.is-restoring .tab,
-.card.is-expanding .tab {
+.card.is-expanded-settled .tab {
   width: min(430px, 45%);
 }
 
-.card.is-expanded .content,
-.card.is-restoring .content,
-.card.is-expanding .content {
+.card.is-expanded-settled .content {
   grid-template-columns: 184px 1fr;
 }
 
-.card.is-expanded .main,
-.card.is-restoring .main,
-.card.is-expanding .main {
+.card.is-expanded-settled .main {
   overflow: auto;
   padding: 24px 28px 26px;
   scrollbar-width: thin;
   scrollbar-color: rgba(147, 243, 255, 0.35) rgba(255, 255, 255, 0.04);
 }
 
-.card.is-expanded .project-overview,
-.card.is-restoring .project-overview,
-.card.is-expanding .project-overview {
+.card.is-expanded-settled .project-overview {
   grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
   padding: 21px 24px;
   margin-bottom: 16px;
 }
 
-.card.is-expanded .folder-grid,
-.card.is-restoring .folder-grid,
-.card.is-expanding .folder-grid {
+.card.is-expanded-settled .folder-grid {
   grid-template-columns: repeat(6, minmax(92px, 1fr));
   gap: 16px;
 }
 
-.card.is-expanded .project-expanded-details,
-.card.is-restoring .project-expanded-details,
-.card.is-expanding .project-expanded-details {
+.card.is-expanded-settled .project-expanded-details {
   display: grid;
 }
 
@@ -1338,21 +1328,15 @@ button.window-button {
 }
 
 @media (max-width: 980px) {
-  .card.is-expanded .content,
-  .card.is-restoring .content,
-  .card.is-expanding .content {
+  .card.is-expanded-settled .content {
     grid-template-columns: 1fr;
   }
 
-  .card.is-expanded .sidebar,
-  .card.is-restoring .sidebar,
-  .card.is-expanding .sidebar {
+  .card.is-expanded-settled .sidebar {
     display: none;
   }
 
-  .card.is-expanded .project-overview,
-  .card.is-restoring .project-overview,
-  .card.is-expanding .project-overview,
+  .card.is-expanded-settled .project-overview,
   .project-expanded-details,
   .detail-list {
     grid-template-columns: 1fr;
