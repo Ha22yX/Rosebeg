@@ -3,6 +3,15 @@ import { createPortal } from "react-dom";
 import { mat4, quat, vec2, vec3, vec4 } from "gl-matrix";
 
 import { GlassSurface } from "@/components/ui/glass-surface";
+import {
+  clampMotionValue,
+  dampMotionValue,
+  dampMotionVector3,
+  dragStretchTarget,
+  motionVectorLength3,
+  normalizeMotionVector3,
+  springMotionValue,
+} from "@/components/ui/motion-utils";
 
 const discVertShaderSource = `#version 300 es
 
@@ -28,13 +37,18 @@ void main() {
 
   if (gl_VertexID > 0) {
     vec3 rotationAxis = uRotationAxisVelocity.xyz;
-    float rotationVelocity = min(0.15, uRotationAxisVelocity.w * 15.0);
-    vec3 stretchDir = normalize(cross(centerPos, rotationAxis));
-    vec3 relativeVertexPos = normalize(worldPosition.xyz - centerPos);
-    float strength = dot(stretchDir, relativeVertexPos);
-    float invAbsStrength = min(0.0, abs(strength) - 1.0);
-    strength = rotationVelocity * sign(strength) * abs(invAbsStrength * invAbsStrength * invAbsStrength + 1.0);
-    worldPosition.xyz += stretchDir * strength;
+    float rotationVelocity = clamp(uRotationAxisVelocity.w, 0.0, 0.16);
+    vec3 stretchVector = cross(centerPos, rotationAxis);
+    float stretchLength = length(stretchVector);
+
+    if (stretchLength > 0.0001) {
+      vec3 stretchDir = stretchVector / stretchLength;
+      vec3 relativeVertexPos = normalize(worldPosition.xyz - centerPos);
+      float strength = dot(stretchDir, relativeVertexPos);
+      float invAbsStrength = min(0.0, abs(strength) - 1.0);
+      strength = rotationVelocity * sign(strength) * abs(invAbsStrength * invAbsStrength * invAbsStrength + 1.0);
+      worldPosition.xyz += stretchDir * strength;
+    }
   }
 
   worldPosition.xyz = radius * normalize(worldPosition.xyz);
@@ -115,9 +129,9 @@ type ViewerState = {
 };
 
 const imageDecodeCache = new Map<string, Promise<void>>();
-const lightboxThumbnailRevealDelayMs = 360;
-const lightboxThumbnailRevealMs = 240;
-const lightboxUnmountDelayMs = 680;
+const lightboxThumbnailRevealDelayMs = 120;
+const lightboxThumbnailRevealMs = 460;
+const lightboxUnmountDelayMs = 760;
 
 function preloadImage(src: string) {
   if (!imageDecodeCache.has(src)) {
@@ -731,6 +745,10 @@ class InfiniteGridMenu {
     duration: number;
   } | null = null;
   private smoothRotationVelocity = 0;
+  private smoothRotationAxis = vec3.fromValues(1, 0, 0);
+  private smoothRotationVector = vec3.create();
+  private stretchAmount = 0;
+  private stretchVelocity = 0;
   private movementActive = false;
   private gl: WebGL2RenderingContext;
   private discProgram: WebGLProgram;
@@ -1053,7 +1071,6 @@ class InfiniteGridMenu {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.discInstances.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.discInstances.matricesArray);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    this.smoothRotationVelocity = this.control.rotationVelocity;
   }
 
   private render() {
@@ -1080,10 +1097,10 @@ class InfiniteGridMenu {
     );
     gl.uniform4f(
       this.discLocations.uRotationAxisVelocity as WebGLUniformLocation,
-      this.control.rotationAxis[0],
-      this.control.rotationAxis[1],
-      this.control.rotationAxis[2],
-      this.smoothRotationVelocity * 1.1
+      this.smoothRotationAxis[0],
+      this.smoothRotationAxis[1],
+      this.smoothRotationAxis[2],
+      this.stretchAmount
     );
     gl.uniform1i(this.discLocations.uItemCount as WebGLUniformLocation, this.items.length);
     gl.uniform1i(this.discLocations.uAtlasSize as WebGLUniformLocation, this.atlasSize);
@@ -1140,9 +1157,65 @@ class InfiniteGridMenu {
 
   private onControlUpdate(deltaTime: number) {
     const timeScale = deltaTime / this.targetFrameDuration + 0.0001;
+    const velocityLimit = this.control.isPointerDown ? 0.2 : 0.14;
+    const velocityTarget = clampMotionValue(this.control.rotationVelocity, velocityLimit);
+    const targetRotationVector: [number, number, number] = [
+      this.control.rotationAxis[0] * velocityTarget,
+      this.control.rotationAxis[1] * velocityTarget,
+      this.control.rotationAxis[2] * velocityTarget,
+    ];
+    const dampedRotationVector = dampMotionVector3(
+      [this.smoothRotationVector[0], this.smoothRotationVector[1], this.smoothRotationVector[2]],
+      targetRotationVector,
+      this.control.isPointerDown ? 0.18 : 0.1,
+      deltaTime,
+      this.targetFrameDuration
+    );
+
+    vec3.set(
+      this.smoothRotationVector,
+      dampedRotationVector[0],
+      dampedRotationVector[1],
+      dampedRotationVector[2]
+    );
+
+    this.smoothRotationVelocity = dampMotionValue(
+      this.smoothRotationVelocity,
+      motionVectorLength3(dampedRotationVector),
+      this.control.isPointerDown ? 0.16 : 0.1,
+      deltaTime,
+      this.targetFrameDuration
+    );
+
+    const normalizedAxis = normalizeMotionVector3(dampedRotationVector, [
+      this.smoothRotationAxis[0],
+      this.smoothRotationAxis[1],
+      this.smoothRotationAxis[2],
+    ]);
+    vec3.set(this.smoothRotationAxis, normalizedAxis[0], normalizedAxis[1], normalizedAxis[2]);
+
+    const stretchTarget = this.control.isPointerDown ? dragStretchTarget(velocityTarget, velocityLimit, 0.16) : 0;
+    const stretchSpring = springMotionValue(this.stretchAmount, this.stretchVelocity, stretchTarget, {
+      stiffness: this.control.isPointerDown ? 230 : 100,
+      damping: this.control.isPointerDown ? 28 : 14,
+      deltaTime,
+    });
+    this.stretchAmount = Math.max(0, Math.min(0.16, stretchSpring.value));
+    this.stretchVelocity = stretchSpring.value <= 0 && stretchTarget === 0 ? 0 : stretchSpring.velocity;
+
+    if (
+      !this.control.isPointerDown &&
+      stretchTarget === 0 &&
+      this.stretchAmount < 0.0008 &&
+      Math.abs(this.stretchVelocity) < 0.0008
+    ) {
+      this.stretchAmount = 0;
+      this.stretchVelocity = 0;
+    }
+
     let damping = 5 / timeScale;
     let cameraTargetZ = 3 * this.scaleFactor;
-    const isMoving = this.control.isPointerDown || Math.abs(this.smoothRotationVelocity) > 0.01;
+    const isMoving = this.control.isPointerDown || Math.abs(this.smoothRotationVelocity) > 0.006;
 
     if (isMoving !== this.movementActive) {
       this.movementActive = isMoving;
@@ -1156,8 +1229,8 @@ class InfiniteGridMenu {
       this.onActiveItemChange(itemIndex);
       this.control.snapTargetDirection = vec3.normalize(vec3.create(), this.getVertexWorldPosition(nearestVertexIndex));
     } else {
-      cameraTargetZ += this.control.rotationVelocity * 80 + 2.5;
-      damping = 7 / timeScale;
+      cameraTargetZ += this.smoothRotationVelocity * 42 + 2.05;
+      damping = 10 / timeScale;
     }
 
     this.camera.position[2] += (cameraTargetZ - this.camera.position[2]) / damping;
@@ -1418,7 +1491,8 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
     };
   }, []);
 
-  const isViewerHoldingMenu = Boolean(viewer);
+  const isViewerHoldingMenu = Boolean(viewer && !viewerClosing);
+  const isViewerLockingCanvas = Boolean(viewer);
   const lightboxClassName = [
     "photo-lightbox",
     viewerExpanded && !viewerClosing ? "is-expanded" : "",
@@ -1428,7 +1502,12 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
     .join(" ");
 
   return (
-    <div className="infinite-menu" data-infinite-menu data-moving={isMoving ? "true" : "false"}>
+    <div
+      className="infinite-menu"
+      data-infinite-menu
+      data-moving={isMoving ? "true" : "false"}
+      data-viewer-lock={isViewerLockingCanvas ? "true" : "false"}
+    >
       <canvas id="infinite-grid-menu-canvas" ref={canvasRef} aria-label="Photography menu" />
 
       {activeItem && (

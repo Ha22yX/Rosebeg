@@ -759,6 +759,10 @@ a {
   cursor: grabbing;
 }
 
+.infinite-menu[data-viewer-lock="true"] #infinite-grid-menu-canvas {
+  pointer-events: none;
+}
+
 .face-title {
   position: absolute;
   left: 50%;
@@ -777,13 +781,18 @@ a {
   opacity: 1;
   transform: translate(calc(-100% - clamp(280px, 17vw, 348px)), -50%);
   pointer-events: none;
-  transition: 0.5s ease;
+  transition:
+    opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .face-title.inactive {
   opacity: 0;
+  transform: translate(calc(-100% - clamp(280px, 17vw, 348px) - 18px), calc(-50% + 8px));
   pointer-events: none;
-  transition: 0.1s ease;
+  transition:
+    opacity 160ms ease,
+    transform 180ms ease;
 }
 
 .face-description {
@@ -804,14 +813,18 @@ a {
   opacity: 1;
   transform: translate(clamp(300px, 18vw, 380px), -50%);
   pointer-events: none;
-  transition: 0.5s ease;
+  transition:
+    opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 540ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .face-description.inactive {
   opacity: 0;
   transform: translate(calc(clamp(300px, 18vw, 380px) + 20px), -50%);
   pointer-events: none;
-  transition: 0.1s ease;
+  transition:
+    opacity 160ms ease,
+    transform 180ms ease;
 }
 
 .glass-surface {
@@ -942,7 +955,10 @@ a {
   opacity: 1;
   transform: translateX(-50%) scale(1);
   pointer-events: auto;
-  transition: 0.5s ease;
+  transition:
+    opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
+    bottom 480ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .action-button.inactive {
@@ -950,7 +966,10 @@ a {
   opacity: 0;
   transform: translateX(-50%) scale(0);
   pointer-events: none;
-  transition: 0.1s ease;
+  transition:
+    opacity 160ms ease,
+    transform 180ms ease,
+    bottom 180ms ease;
 }
 
 .action-button-glass {
@@ -1026,11 +1045,11 @@ a {
   box-shadow: none;
   will-change: left, top, width, height, border-radius;
   transition:
-    left 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    top 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    width 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    height 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-radius 560ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    top 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 620ms cubic-bezier(0.16, 1, 0.3, 1),
     opacity 160ms ease;
 }
 
@@ -1045,12 +1064,12 @@ a {
 .photo-lightbox.is-closing .photo-lightbox-visual {
   opacity: 0;
   transition:
-    left 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    top 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    width 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    height 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-radius 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 180ms ease 420ms;
+    left 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    top 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease 560ms;
 }
 
 .photo-lightbox-visual img {

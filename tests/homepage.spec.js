@@ -470,27 +470,22 @@ test("expands the active photography circle into an in-page full image", async (
   await page.waitForFunction(() => {
     const lightbox = document.querySelector("[data-photo-lightbox]");
     const canvas = document.querySelector("[data-infinite-menu] canvas");
+    const menu = document.querySelector("[data-infinite-menu]");
 
     return Boolean(
       lightbox?.classList.contains("is-closing") &&
         window.getComputedStyle(lightbox).pointerEvents === "auto" &&
         canvas?.hasAttribute("data-hidden-instance-index") &&
-        document.querySelectorAll(".action-button.active").length === 0
+        canvas instanceof Element &&
+        window.getComputedStyle(canvas).pointerEvents === "none" &&
+        menu?.getAttribute("data-viewer-lock") === "true" &&
+        document.querySelector(".action-button.active") &&
+        document.querySelector(".face-title.active")
     );
   });
 
-  const menuBox = await page.locator("[data-infinite-menu]").boundingBox();
-  if (!menuBox) {
-    throw new Error("Photography menu was not measurable during lightbox close.");
-  }
-
-  await page.mouse.move(menuBox.x + menuBox.width / 2, menuBox.y + menuBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(menuBox.x + menuBox.width / 2 - 120, menuBox.y + menuBox.height / 2 - 30, { steps: 4 });
-  await expect(page.locator("[data-infinite-menu]")).toHaveAttribute("data-moving", "false");
-  await page.mouse.up();
-
   await expect(page.locator("[data-photo-lightbox]")).toHaveCount(0);
   await expect(page.locator("[data-infinite-menu] canvas")).not.toHaveAttribute("data-hidden-instance-index", /\d+/);
+  await expect(page.locator("[data-infinite-menu]")).toHaveAttribute("data-viewer-lock", "false");
   await expect(page.locator(".action-button.active")).toBeVisible();
 });
