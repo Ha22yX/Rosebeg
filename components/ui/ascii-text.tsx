@@ -198,6 +198,7 @@ class CanvasText {
   lineHeight: number;
   font: string;
   alignMode: "center" | "anchored" | "layout";
+  lineXPositions: number[] = [];
 
   constructor(
     text: string,
@@ -242,6 +243,7 @@ class CanvasText {
 
     this.canvas.width = textWidth;
     this.canvas.height = textHeight;
+    this.lineXPositions = [];
   }
 
   render() {
@@ -257,7 +259,11 @@ class CanvasText {
       const referenceLine =
         this.alignMode === "center" ? drawLine : anchorLines[index] ?? drawLine;
       const referenceWidth = this.context.measureText(referenceLine || " ").width;
-      const x = Math.max(18, (this.canvas.width - referenceWidth) / 2);
+      const targetX = Math.max(18, (this.canvas.width - referenceWidth) / 2);
+      const currentX = this.lineXPositions[index] ?? targetX;
+      const nextX = currentX + (targetX - currentX) * 0.18;
+      const x = Math.abs(nextX - targetX) < 0.12 ? targetX : nextX;
+      this.lineXPositions[index] = x;
       this.context.fillText(drawLine, x, 12 + index * this.lineHeight);
     });
   }

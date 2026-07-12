@@ -14,8 +14,6 @@ portfolio
 by HarryX`;
 const highlightPrefix = "I am a ";
 const roleAsciiAnchor = "I am a Photographer";
-const compactRoleAsciiAnchor = `I am a
-Photographer`;
 const highlightPhrases = ["Developer", "Researcher", "Photographer"];
 const initialTitleState: ManifestoTitleState = {
   displayText: "",
@@ -124,11 +122,7 @@ function getAsciiRenderConfig(targetText: string, compact: boolean) {
 function getAsciiTitleLayers(text: string, targetText: string, compact: boolean) {
   const displayText = text || " ";
   const targetOrDisplayText = targetText || displayText;
-  const anchorText = targetOrDisplayText.startsWith(highlightPrefix)
-    ? compact
-      ? compactRoleAsciiAnchor
-      : roleAsciiAnchor
-    : formatAsciiTitle(targetOrDisplayText, compact);
+  const anchorText = formatAsciiTitle(targetOrDisplayText, compact);
 
   if (!displayText.startsWith(highlightPrefix)) {
     return {

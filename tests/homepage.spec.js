@@ -72,21 +72,21 @@ test("anchors the shared I am a prefix before the yellow role appears", async ({
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
-test("keeps the shared role ASCII anchor stable across role changes", async ({ page }) => {
+test("centers each role ASCII anchor across role changes", async ({ page }) => {
   await page.goto("/");
   const baseAscii = page.locator(".ascii-title-base [data-ascii-canvas]");
 
   await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Developer", {
     timeout: 16000,
   });
-  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Photographer");
+  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Developer");
   await expect(baseAscii).toHaveAttribute("data-ascii-font-size", "4");
   await expect(baseAscii).toHaveAttribute("data-resize-mode", "debounced");
 
   await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Researcher", {
     timeout: 6000,
   });
-  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Photographer");
+  await expect(baseAscii).toHaveAttribute("data-anchor-text", "I am a Researcher");
 
   await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Photographer", {
     timeout: 6000,
