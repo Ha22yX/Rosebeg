@@ -35,7 +35,7 @@ export type ManifestoTitleState = {
 
 const typeSpeed = 62;
 const deleteSpeed = 34;
-const rolePrefixPause = 1400;
+const rolePrefixPause = 420;
 
 const titleSequence: SequenceStep[] = [
   { action: "type", text: "This is Rosebeg", speed: typeSpeed, targetText: "This is Rosebeg" },

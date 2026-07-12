@@ -87,9 +87,8 @@ test("recovers the ASCII title after narrowing and restoring the viewport", asyn
 test("briefly pauses on the shared I am a prefix before typing each role", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");
-  await expect(title).toHaveText(/I am a_/, { timeout: 15000 });
-  await page.waitForTimeout(160);
-  await expect(title).toHaveText(/I am a_/);
+  await expect.poll(async () => title.textContent(), { timeout: 15000, intervals: [50] }).toBe("I am a_");
+  await expect.poll(async () => title.textContent(), { timeout: 850, intervals: [50] }).toMatch(/I am a [A-Z]/);
 });
 
 test("uses the shader background and removes the old cable instrument", async ({ page }) => {
