@@ -306,11 +306,36 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
 test("exposes photography menu items and social placeholders", async ({ page }) => {
   await page.goto("/");
   const menu = page.locator("[data-infinite-menu]");
+  const actionButton = page.locator(".action-button.active");
+  const actionIcon = actionButton.locator(".action-button-icon");
   await expect(menu).toBeVisible();
   await expect(page.locator("#infinite-grid-menu-canvas")).toBeVisible();
-  await expect(page.locator(".action-button.active")).toBeVisible();
+  await expect(actionButton).toBeVisible();
+  await expect(actionButton).toHaveAttribute("data-glass-surface", "true");
+  await expect(actionButton.locator(".action-button-glass")).toHaveClass(/glass-surface--svg/);
+  await expect(actionButton.locator(".action-button-glass")).toHaveAttribute("data-distortion-scale", "-300");
+  await expect(actionButton.locator(".action-button-glass")).toHaveCSS("background-color", "rgba(255, 255, 255, 0.08)");
+  await expect(actionButton).toHaveCSS("border-top-width", "0px");
   await expect(menu).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(menu).toHaveCSS("border-top-width", "0px");
+
+  const buttonBox = await actionButton.boundingBox();
+  const iconBox = await actionIcon.boundingBox();
+  if (!buttonBox || !iconBox) {
+    throw new Error("Action button geometry was not measurable.");
+  }
+
+  const buttonCenterX = buttonBox.x + buttonBox.width / 2;
+  const buttonCenterY = buttonBox.y + buttonBox.height / 2;
+  const iconCenterX = iconBox.x + iconBox.width / 2;
+  const iconCenterY = iconBox.y + iconBox.height / 2;
+  expect(Math.abs(buttonCenterX - iconCenterX)).toBeLessThanOrEqual(1.5);
+  expect(Math.abs(buttonCenterY - iconCenterY)).toBeLessThanOrEqual(1.5);
+
+  await actionButton.hover();
+  await expect(actionButton.locator(".action-button-glass")).toHaveAttribute("data-distortion-scale", "300", {
+    timeout: 2000,
+  });
 
   for (const label of ["GitHub", "X", "Instagram", "Email"]) {
     await expect(page.getByRole("link", { name: label })).toBeVisible();

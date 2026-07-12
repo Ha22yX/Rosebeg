@@ -2,6 +2,8 @@ import { type CSSProperties, useCallback, useEffect, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import { mat4, quat, vec2, vec3, vec4 } from "gl-matrix";
 
+import { GlassSurface } from "@/components/ui/glass-surface";
+
 const discVertShaderSource = `#version 300 es
 
 uniform mat4 uWorldMatrix;
@@ -1204,7 +1206,54 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const [viewer, setViewer] = useState<ViewerState | null>(null);
   const [viewerExpanded, setViewerExpanded] = useState(false);
   const [viewerClosing, setViewerClosing] = useState(false);
+  const [actionButtonState, setActionButtonState] = useState<"idle" | "hover" | "press">("idle");
+  const actionButtonScaleFrameRef = useRef<number | null>(null);
+  const actionButtonScaleValueRef = useRef(-300);
+  const [actionButtonDistortionScale, setActionButtonDistortionScale] = useState(-300);
   const sourceItems = items.length ? items : defaultItems;
+  const actionButtonTargetDistortionScale = actionButtonState === "idle" ? -300 : 300;
+
+  useEffect(() => {
+    if (actionButtonScaleFrameRef.current) {
+      window.cancelAnimationFrame(actionButtonScaleFrameRef.current);
+      actionButtonScaleFrameRef.current = null;
+    }
+
+    const from = actionButtonScaleValueRef.current;
+    const to = actionButtonTargetDistortionScale;
+
+    if (from === to) {
+      setActionButtonDistortionScale(to);
+      return undefined;
+    }
+
+    const duration = 420;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const next = progress === 1 ? to : Math.round((from + (to - from) * eased) * 100) / 100;
+
+      actionButtonScaleValueRef.current = next;
+      setActionButtonDistortionScale(next);
+
+      if (progress < 1) {
+        actionButtonScaleFrameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        actionButtonScaleFrameRef.current = null;
+      }
+    };
+
+    actionButtonScaleFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (actionButtonScaleFrameRef.current) {
+        window.cancelAnimationFrame(actionButtonScaleFrameRef.current);
+        actionButtonScaleFrameRef.current = null;
+      }
+    };
+  }, [actionButtonTargetDistortionScale]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1391,12 +1440,38 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
           <button
             type="button"
             onClick={openViewer}
+            onPointerEnter={() => setActionButtonState("hover")}
+            onPointerLeave={() => setActionButtonState("idle")}
+            onPointerDown={() => setActionButtonState("press")}
+            onPointerUp={() => setActionButtonState("hover")}
+            onPointerCancel={() => setActionButtonState("idle")}
+            onBlur={() => setActionButtonState("idle")}
             className={`action-button ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}
             aria-label={`Open ${activeItem.title}`}
+            data-glass-surface="true"
           >
-            <span className="action-button-icon" aria-hidden="true">
-              {"\u2197"}
-            </span>
+            <GlassSurface
+              width="100%"
+              height="100%"
+              borderRadius={999}
+              borderWidth={0.11}
+              brightness={50}
+              opacity={0.93}
+              blur={11}
+              displace={1.1}
+              backgroundOpacity={0.08}
+              saturation={1}
+              distortionScale={actionButtonDistortionScale}
+              redOffset={20}
+              greenOffset={21}
+              blueOffset={20}
+              mixBlendMode="screen"
+              className="action-button-glass"
+            >
+              <span className="action-button-icon" aria-hidden="true">
+                {"\u2197"}
+              </span>
+            </GlassSurface>
           </button>
         </>
       )}
