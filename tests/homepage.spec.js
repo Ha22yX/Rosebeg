@@ -540,7 +540,7 @@ test("expands the active photography circle into an in-page full image", async (
   expect(Math.abs(visualBox.width - mediaBox.width)).toBeLessThan(1);
   expect(Math.abs(visualBox.height - mediaBox.height)).toBeLessThan(1);
 
-  await page.locator("[data-photo-lightbox]").click({ position: { x: 10, y: 10 } });
+  await page.mouse.click(10, 10);
   await page.waitForFunction(() => {
     const lightbox = document.querySelector("[data-photo-lightbox]");
     const canvas = document.querySelector("[data-infinite-menu] canvas");
@@ -562,4 +562,34 @@ test("expands the active photography circle into an in-page full image", async (
   await expect(page.locator("[data-infinite-menu] canvas")).not.toHaveAttribute("data-hidden-instance-index", /\d+/);
   await expect(page.locator("[data-infinite-menu]")).toHaveAttribute("data-viewer-lock", "false");
   await expect(page.locator(".action-button.active")).toBeVisible();
+});
+
+test("keeps the closing photo circle attached to the scrolled menu position", async ({ page }) => {
+  await page.goto("/");
+  const canvas = page.locator("#infinite-grid-menu-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  await expect(page.locator(".action-button.active")).toBeVisible();
+
+  await page.locator(".action-button.active").click();
+  await expect(page.locator("[data-photo-lightbox]")).toHaveClass(/is-expanded/);
+
+  await page.mouse.click(10, 10);
+  await page.waitForFunction(() =>
+    document.querySelector("[data-photo-lightbox]")?.classList.contains("is-closing")
+  );
+
+  const visual = page.locator(".photo-lightbox-visual");
+  const originTopBeforeScroll = await visual.evaluate((element) =>
+    Number.parseFloat(element.style.getPropertyValue("--origin-top"))
+  );
+
+  await page.evaluate(() => window.scrollBy({ top: 420, behavior: "instant" }));
+
+  await expect
+    .poll(async () =>
+      visual.evaluate((element) =>
+        Number.parseFloat(element.style.getPropertyValue("--origin-top"))
+      )
+    )
+    .toBeLessThan(originTopBeforeScroll - 80);
 });

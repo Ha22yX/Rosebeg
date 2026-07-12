@@ -154,6 +154,18 @@ function preloadImage(src: string) {
   return imageDecodeCache.get(src) as Promise<void>;
 }
 
+function getCanvasFallbackOrigin(canvas: HTMLCanvasElement) {
+  const rect = canvas.getBoundingClientRect();
+  const diameter = Math.min(rect.width, rect.height) * 0.54;
+
+  return {
+    left: rect.left + rect.width / 2 - diameter / 2,
+    top: rect.top + rect.height / 2 - diameter / 2,
+    width: diameter,
+    height: diameter,
+  };
+}
+
 function getTargetRect(aspect = 4 / 3) {
   const maxWidth = window.innerWidth * 0.88;
   const maxHeight = window.innerHeight * 0.84;
@@ -1314,6 +1326,36 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const initialItemIndex = initialItemIndexRef.current;
   const actionButtonTargetDistortionScale = actionButtonState === "idle" ? -300 : 300;
 
+  const getCurrentViewerOrigin = useCallback(() => {
+    const canvas = canvasRef.current;
+    const sketch = sketchRef.current;
+
+    if (!canvas || !sketch) {
+      return null;
+    }
+
+    const activeSnapshot = sketch.getActiveDiscSnapshot();
+
+    if (activeSnapshot) {
+      return {
+        originSource: "webgl-active-disc" as const,
+        hiddenInstanceIndex: activeSnapshot.instanceIndex,
+        origin: {
+          left: activeSnapshot.left,
+          top: activeSnapshot.top,
+          width: activeSnapshot.width,
+          height: activeSnapshot.height,
+        },
+      };
+    }
+
+    return {
+      originSource: "canvas-fallback" as const,
+      hiddenInstanceIndex: null,
+      origin: getCanvasFallbackOrigin(canvas),
+    };
+  }, []);
+
   useEffect(() => {
     if (actionButtonScaleFrameRef.current) {
       window.cancelAnimationFrame(actionButtonScaleFrameRef.current);
@@ -1412,33 +1454,21 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
 
     await preloadImage(item.link);
 
-    const activeSnapshot = sketch.getActiveDiscSnapshot();
+    const originSnapshot = getCurrentViewerOrigin();
 
-    const rect = canvas.getBoundingClientRect();
-    const diameter = Math.min(rect.width, rect.height) * 0.54;
-    const fallbackOrigin = {
-      left: rect.left + rect.width / 2 - diameter / 2,
-      top: rect.top + rect.height / 2 - diameter / 2,
-      width: diameter,
-      height: diameter,
-    };
-    const origin = activeSnapshot
-      ? {
-          left: activeSnapshot.left,
-          top: activeSnapshot.top,
-          width: activeSnapshot.width,
-          height: activeSnapshot.height,
-        }
-      : fallbackOrigin;
+    if (!originSnapshot) {
+      return;
+    }
+
+    const { origin, originSource, hiddenInstanceIndex } = originSnapshot;
     const target = getTargetRect(item.aspect);
-    const hiddenInstanceIndex = activeSnapshot?.instanceIndex ?? null;
 
     sketch.setHiddenInstanceIndex(hiddenInstanceIndex, 0);
 
     setViewerExpanded(false);
     setViewer({
       item,
-      originSource: activeSnapshot ? "webgl-active-disc" : "canvas-fallback",
+      originSource,
       hiddenInstanceIndex,
       origin,
       target,
@@ -1449,6 +1479,20 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const closeViewer = useCallback(() => {
     if (viewerClosing) {
       return;
+    }
+
+    const latestOrigin = getCurrentViewerOrigin();
+    if (latestOrigin) {
+      setViewer((currentViewer) =>
+        currentViewer
+          ? {
+              ...currentViewer,
+              originSource: latestOrigin.originSource,
+              hiddenInstanceIndex: latestOrigin.hiddenInstanceIndex,
+              origin: latestOrigin.origin,
+            }
+          : currentViewer
+      );
     }
 
     setViewerClosing(true);
@@ -1472,7 +1516,54 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       setViewerClosing(false);
       closeTimerRef.current = null;
     }, lightboxUnmountDelayMs);
-  }, [viewerClosing]);
+  }, [getCurrentViewerOrigin, viewerClosing]);
+
+  useEffect(() => {
+    if (!viewerClosing) {
+      return undefined;
+    }
+
+    let frame = 0;
+
+    const refreshClosingOrigin = () => {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const latestOrigin = getCurrentViewerOrigin();
+
+        if (!latestOrigin) {
+          return;
+        }
+
+        setViewer((currentViewer) =>
+          currentViewer
+            ? {
+                ...currentViewer,
+                originSource: latestOrigin.originSource,
+                hiddenInstanceIndex: latestOrigin.hiddenInstanceIndex,
+                origin: latestOrigin.origin,
+              }
+            : currentViewer
+        );
+      });
+    };
+
+    refreshClosingOrigin();
+    window.addEventListener("scroll", refreshClosingOrigin, { passive: true });
+    window.addEventListener("resize", refreshClosingOrigin);
+
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      window.removeEventListener("scroll", refreshClosingOrigin);
+      window.removeEventListener("resize", refreshClosingOrigin);
+    };
+  }, [getCurrentViewerOrigin, viewerClosing]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1591,7 +1682,11 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
             className={lightboxClassName}
             data-photo-lightbox
             onPointerDown={closeViewer}
-            onWheel={(event) => event.preventDefault()}
+            onWheel={(event) => {
+              if (!viewerClosing) {
+                event.preventDefault();
+              }
+            }}
           >
             <figure
               className="photo-lightbox-visual"
