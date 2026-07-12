@@ -6,6 +6,7 @@ import {
   type ManifestoTitleState,
 } from "@/components/ui/manifesto-typewriter";
 import { SignalNavigation } from "@/components/ui/signal-navigation";
+import { SmoothScrollController } from "@/components/ui/smooth-scroll-controller";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
 
 const compactAsciiLayoutTitle = `A personal
@@ -188,6 +189,7 @@ function App() {
 
   return (
     <>
+      <SmoothScrollController />
       <ShaderBackground className={isNavigationOpen ? "is-navigation-open" : ""} />
       <div className={isNavigationOpen ? "page-stage is-navigation-open" : "page-stage"} data-page-stage>
         <main className="site-shell">
