@@ -73,6 +73,50 @@ test("gives the selected code works stack enough vertical room to avoid a hard b
   expect(bottomReserve).toBeGreaterThan(90);
 });
 
+test("maximizes a selected code works card from the same window node", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  const stack = frame.locator("[data-card-swap]");
+  await expect(stack).toHaveAttribute("data-card-swap-ready", "true");
+  await frame.locator("[data-card-swap]").evaluate(() => {
+    window.rosebegExplorerCards?.cardSwap?.pause();
+  });
+
+  const frontCard = frame.locator(".card.is-front").first();
+  await expect(frontCard).toBeVisible();
+  const toggle = frame.locator(".card.is-front").first().getByRole("button", { name: /maximize project window/i });
+  await expect(toggle).toBeVisible();
+  await toggle.dispatchEvent("pointerover", { bubbles: true, pointerType: "mouse" });
+  await expect(toggle).toHaveAttribute("data-hover-ready", "true");
+  const compactBox = await toggle.evaluate((button) => {
+    const card = button.closest(".card");
+    card?.setAttribute("data-test-expanded-origin", "true");
+    return card?.getBoundingClientRect().toJSON();
+  });
+  expect(compactBox).toBeTruthy();
+
+  await toggle.click({ force: true });
+  const expandedCard = frame.locator(".card.is-expanded[data-test-expanded-origin='true']");
+  await expect(expandedCard).toBeVisible();
+  await expect(stack).toHaveAttribute("data-expanded", "true");
+  await expect(expandedCard.locator(".project-expanded-details")).toBeVisible();
+  await expect(expandedCard.getByRole("button", { name: /restore project window/i })).toBeVisible();
+
+  const expandedBox = await expandedCard.boundingBox();
+  expect(expandedBox).not.toBeNull();
+  expect(expandedBox.width).toBeGreaterThan(compactBox.width * 1.12);
+  expect(expandedBox.height).toBeGreaterThan(compactBox.height * 1.08);
+  await expect(expandedCard).toHaveCSS("position", "fixed");
+  await expect(expandedCard).toHaveCSS("transform", "none");
+
+  await frame.locator("[data-project-card-swap-section]").click({ position: { x: 12, y: 12 } });
+  await expect(frame.locator(".card.is-expanded")).toHaveCount(0);
+  await expect(stack).toHaveAttribute("data-expanded", "false");
+  await expect(frame.locator(".card[data-test-expanded-origin='true']")).toBeVisible();
+});
+
 test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {
   await page.goto("/");
   const title = page.locator("[data-typewriter-title]");

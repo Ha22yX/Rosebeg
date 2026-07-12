@@ -567,6 +567,116 @@ function externalTarget(url) {
   return url && url !== "#" ? ' target="_blank" rel="noreferrer"' : "";
 }
 
+function getProjectExpandedDetails(project) {
+  const detailMap = {
+    "Auto Email System": {
+      focus: "A private inbox command center that compresses unread mail into decisions instead of another queue.",
+      role: "Full-stack automation, data flow design, alert logic",
+      notes: [
+        "Separates inbox noise into priority classes before it reaches the user.",
+        "Keeps the surface operational: summaries, attachments, and WeChat alerts stay in one workflow.",
+        "Designed for self-hosting, so credentials and mail state remain under owner control."
+      ]
+    },
+    "Bridge US V2": {
+      focus: "A rebuild of student-life infrastructure around multilingual posts, moderation, search, and AI help.",
+      role: "Product architecture, React/FastAPI implementation, admin UX",
+      notes: [
+        "Balances public community posting with moderation and administrative visibility.",
+        "Uses translation and AI Q&A as workflow features rather than decorative add-ons.",
+        "Structured as a practical platform that can keep growing after launch."
+      ]
+    },
+    "Mother-Ship Docking Drone System": {
+      focus: "A research workspace for relative localization and safer autonomous docking experiments.",
+      role: "Research prototyping, sensor integration, control validation",
+      notes: [
+        "Combines UWB, visual markers, PX4, and MAVLink into one experimental stack.",
+        "Prioritizes mother-frame relative position before higher-risk control loops.",
+        "Keeps hardware validation and simulation artifacts visible in the same repository story."
+      ]
+    },
+    "Surfboard Vacuum Table DXF Generator": {
+      focus: "A geometry tool that turns board contours into repeatable manufacturing outputs.",
+      role: "CAD automation, local tool design, export pipeline",
+      notes: [
+        "Converts edge selections into suction-hole and capsule-slot patterns.",
+        "Bridges visual preview and DXF export so the tool stays useful at the bench.",
+        "Keeps manufacturing geometry parameterized instead of hand-redrawn."
+      ]
+    },
+    "ESP32 Sound Radar": {
+      focus: "A compact embedded signal prototype for estimating direction from microphone timing differences.",
+      role: "Embedded prototyping, signal workflow, calibration UI",
+      notes: [
+        "Builds a four-microphone TDOA pipeline around ESP32-S3 constraints.",
+        "Pairs the physical display with a web tuning surface for fast calibration.",
+        "Treats the browser as a live lab console rather than only a dashboard."
+      ]
+    },
+    "SAT AI Tutor": {
+      focus: "An adaptive study system that turns wrong answers into guided review and mastery data.",
+      role: "Learning product design, AI explanation flow, admin tooling",
+      notes: [
+        "Connects practice, explanations, PDF import, and analytics into a single learning loop.",
+        "Uses AI feedback where it can reduce review friction and expose patterns.",
+        "Keeps admin workflows close to the question bank and student progress data."
+      ]
+    },
+    PhotoBack: {
+      focus: "A self-hosted gallery desk for photographer delivery, private links, and client selections.",
+      role: "Photography workflow design, Flask implementation, media delivery",
+      notes: [
+        "Turns event delivery into a clean client-facing link instead of scattered files.",
+        "Keeps selection, delivery, and backup close to the photographer workflow.",
+        "Designed around trust: private access, clear gallery states, and predictable handoff."
+      ]
+    }
+  };
+
+  return (
+    detailMap[project.name] ?? {
+      focus: project.summary,
+      role: "Design, implementation, and system integration",
+      notes: [
+        "Built as a focused project surface rather than a generic repository preview.",
+        "Highlights the implementation decisions that make the project useful.",
+        "Keeps code structure, launch paths, and project intent readable at a glance."
+      ]
+    }
+  );
+}
+
+function renderProjectExpandedDetails(project) {
+  const details = getProjectExpandedDetails(project);
+  const stack = project.stack?.join(" / ") || project.chips.map(([, label]) => label).join(" / ");
+  const notes = details.notes
+    .map((note) => `<li>${escapeHtml(note)}</li>`)
+    .join("");
+
+  return `
+    <section class="project-expanded-details" aria-label="${escapeHtml(project.name)} expanded project details">
+      <div class="detail-column detail-column-primary">
+        <div class="section-label">Expanded brief</div>
+        <p>${escapeHtml(details.focus)}</p>
+      </div>
+      <div class="detail-stats" aria-label="Project metadata">
+        <div class="detail-stat">
+          <span>Role</span>
+          <strong>${escapeHtml(details.role)}</strong>
+        </div>
+        <div class="detail-stat">
+          <span>Stack</span>
+          <strong>${escapeHtml(stack)}</strong>
+        </div>
+      </div>
+      <ul class="detail-list">
+        ${notes}
+      </ul>
+    </section>
+  `;
+}
+
 function applyExplorerCardContent(card, project, index) {
   if (!project) return;
 
@@ -619,7 +729,9 @@ function applyExplorerCardContent(card, project, index) {
       <span class="new-tab" aria-hidden="true">${icon("plus")}</span>
       <div class="window-actions">
         <span class="window-button" aria-hidden="true">${icon("minus")}</span>
-        <span class="window-button" aria-hidden="true">${icon("square")}</span>
+        <button class="window-button project-window-toggle" type="button" aria-label="Maximize project window" data-hover-ready="false" data-project-window-toggle>
+          ${icon("square")}
+        </button>
         <span class="window-button close" aria-hidden="true">${icon("x")}</span>
       </div>
     </header>
@@ -685,6 +797,7 @@ function applyExplorerCardContent(card, project, index) {
           </div>
         </div>
         <div class="folder-grid">${files}</div>
+        ${renderProjectExpandedDetails(project)}
       </section>
     </section>
 
@@ -724,7 +837,9 @@ function renderExplorerCardShell(project, index) {
         <span class="new-tab" aria-hidden="true">${icon("plus")}</span>
         <div class="window-actions">
           <span class="window-button" aria-hidden="true">${icon("minus")}</span>
-          <span class="window-button" aria-hidden="true">${icon("square")}</span>
+          <button class="window-button project-window-toggle" type="button" aria-label="Maximize project window" data-hover-ready="false" data-project-window-toggle>
+            ${icon("square")}
+          </button>
           <span class="window-button close" aria-hidden="true">${icon("x")}</span>
         </div>
       </header>
@@ -867,6 +982,7 @@ function blendSlot(from, to, amount, arcY = 0) {
 class CardSwap {
   constructor(container, options = {}) {
     this.container = container;
+    this.root = container.ownerDocument;
     this.width = options.width ?? 940;
     this.height = options.height ?? 600;
     this.cardDistance = options.cardDistance ?? 44;
@@ -905,11 +1021,19 @@ class CardSwap {
     this.frameMotion = new WeakMap();
     this.frameTweens = new WeakMap();
     this.reboundTweens = new WeakMap();
+    this.expandedCard = null;
+    this.expandedSnapshot = null;
+    this.expandTween = null;
+    this.isRestoringExpandedCard = false;
     this.lastPointer = { x: null, y: null };
     this.handlePointerMove = (event) => this.onPointerMove(event);
     this.handlePointerLeave = () => this.clearStackHover({ schedule: true });
     this.handleWheel = (event) => this.onWheel(event);
     this.handleProgressFrame = (time) => this.onProgressFrame(time);
+    this.handleStackClick = (event) => this.onStackClick(event);
+    this.handleStackPointerOver = (event) => this.onStackPointerOver(event);
+    this.handleStackPointerOut = (event) => this.onStackPointerOut(event);
+    this.handleBlankPointerDown = (event) => this.onBlankPointerDown(event);
 
     this.config =
       this.easing === "elastic"
@@ -941,6 +1065,7 @@ class CardSwap {
     this.container.dataset.renderedCardCount = String(this.cards.length);
     this.container.dataset.visibleCardCount = String(this.visibleCardCount);
     this.container.dataset.initialIndex = String(this.initialIndex);
+    this.container.dataset.expanded = "false";
 
     this.init();
   }
@@ -956,6 +1081,7 @@ class CardSwap {
     this.renderProgress(this.initialIndex);
     this.bindFrontHoverPause();
     this.bindWheelSwitching();
+    this.bindWindowExpansion();
     this.scheduleNextSwap();
 
     if (this.pauseOnHover) {
@@ -983,7 +1109,12 @@ class CardSwap {
     window.removeEventListener("pointerleave", this.handlePointerLeave);
     window.removeEventListener("blur", this.handlePointerLeave);
     window.removeEventListener("wheel", this.handleWheel);
+    this.root.removeEventListener("click", this.handleStackClick);
+    this.root.removeEventListener("pointerover", this.handleStackPointerOver);
+    this.root.removeEventListener("pointerout", this.handleStackPointerOut);
+    this.container.closest("[data-project-card-swap-section]")?.removeEventListener("pointerdown", this.handleBlankPointerDown);
     window.clearTimeout(this.wheelSettleTimer);
+    this.expandTween?.kill();
     this.clearArrivalRebound();
     this.settleWheelTension(0.01);
     this.container.dataset.cardSwapReady = "false";
@@ -999,6 +1130,13 @@ class CardSwap {
     window.addEventListener("wheel", this.handleWheel, { passive: false });
   }
 
+  bindWindowExpansion() {
+    this.root.addEventListener("click", this.handleStackClick);
+    this.root.addEventListener("pointerover", this.handleStackPointerOver);
+    this.root.addEventListener("pointerout", this.handleStackPointerOut);
+    this.container.closest("[data-project-card-swap-section]")?.addEventListener("pointerdown", this.handleBlankPointerDown);
+  }
+
   clearScheduledSwap() {
     window.clearTimeout(this.interval);
     this.interval = null;
@@ -1006,7 +1144,7 @@ class CardSwap {
 
   scheduleNextSwap() {
     this.clearScheduledSwap();
-    if (this.isDestroyed || this.hoverPaused || this.isAnimating) return;
+    if (this.isDestroyed || this.hoverPaused || this.isAnimating || this.expandedCard) return;
 
     this.interval = window.setTimeout(() => this.swap(), this.delay);
   }
@@ -1066,6 +1204,8 @@ class CardSwap {
   }
 
   onWheel(event) {
+    if (this.expandedCard) return;
+
     this.lastPointer = { x: event.clientX, y: event.clientY };
     if (!this.isPointOverCardStack(event.clientX, event.clientY)) return;
 
@@ -1400,6 +1540,8 @@ class CardSwap {
   }
 
   renderProgress(progress = this.currentProgress) {
+    if (this.expandedCard) return;
+
     const total = this.visibleCardCount;
     const layout = this.getProgressLayout(progress);
     const roleStep = Math.round(progress);
@@ -1441,7 +1583,15 @@ class CardSwap {
   }
 
   advanceProgress(deltaSteps, { source = "wheel" } = {}) {
-    if (this.cards.length < 2 || this.isDestroyed || !Number.isFinite(deltaSteps) || deltaSteps === 0) return;
+    if (
+      this.cards.length < 2 ||
+      this.isDestroyed ||
+      this.expandedCard ||
+      !Number.isFinite(deltaSteps) ||
+      deltaSteps === 0
+    ) {
+      return;
+    }
 
     const wholeSteps = Math.trunc(deltaSteps);
     if (wholeSteps === 0) return;
@@ -1643,6 +1793,193 @@ class CardSwap {
     });
   }
 
+  onStackClick(event) {
+    const button = event.target.closest("[data-project-window-toggle]");
+    if (!button) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const card = button.closest(".card");
+    if (!card) return;
+
+    if (card === this.expandedCard) {
+      this.restoreExpandedCard();
+      return;
+    }
+
+    if (!card.classList.contains("is-front")) return;
+    this.expandCard(card);
+  }
+
+  onStackPointerOver(event) {
+    const button = event.target.closest("[data-project-window-toggle]");
+    if (button) {
+      button.dataset.hoverReady = "true";
+      const card = button.closest(".card");
+      if (card?.classList.contains("is-front") && !this.expandedCard) {
+        this.cards.forEach((candidate) => candidate.classList.remove("is-hovered"));
+        card.classList.add("is-hovered");
+        this.hoverPaused = true;
+        this.pointerOverStack = true;
+        this.container.dataset.hoverPaused = "true";
+        this.clearScheduledSwap();
+      }
+    }
+  }
+
+  onStackPointerOut(event) {
+    const button = event.target.closest("[data-project-window-toggle]");
+    if (button && !button.contains(event.relatedTarget)) {
+      button.dataset.hoverReady = "false";
+      if (!this.expandedCard) {
+        this.syncHoverPauseFromPointer({ schedule: true });
+      }
+    }
+  }
+
+  onBlankPointerDown(event) {
+    if (!this.expandedCard || this.isRestoringExpandedCard) return;
+    if (event.target.closest(".card.is-expanded")) return;
+
+    this.restoreExpandedCard();
+  }
+
+  updateWindowToggle(card, isExpanded) {
+    const button = card?.querySelector("[data-project-window-toggle]");
+    if (!button) return;
+
+    button.setAttribute("aria-label", isExpanded ? "Restore project window" : "Maximize project window");
+    button.dataset.windowState = isExpanded ? "expanded" : "compact";
+    button.innerHTML = icon(isExpanded ? "minimize-2" : "square");
+    window.lucide?.createIcons();
+  }
+
+  getExpandedTargetRect() {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const width = clamp(viewportWidth * 0.72, this.width * 1.16, Math.min(1240, viewportWidth - 88));
+    const height = clamp(viewportHeight * 0.74, this.height * 1.1, Math.min(790, viewportHeight - 76));
+
+    return {
+      left: Math.max(32, (viewportWidth - width) / 2 + Math.min(56, viewportWidth * 0.025)),
+      top: Math.max(32, (viewportHeight - height) / 2),
+      width,
+      height
+    };
+  }
+
+  lockProgressAnimation() {
+    window.cancelAnimationFrame(this.progressFrame);
+    this.progressFrame = 0;
+    this.targetProgress = this.currentProgress;
+    this.progressVelocity = 0;
+    this.isAnimating = false;
+    this.clearScheduledSwap();
+    this.clearArrivalRebound();
+    this.settleWheelTension(0.18);
+  }
+
+  expandCard(card) {
+    if (this.expandedCard || this.isRestoringExpandedCard || !card) return;
+
+    this.ensureCardContent(card);
+    this.lockProgressAnimation();
+
+    const startRect = card.getBoundingClientRect();
+    const targetRect = this.getExpandedTargetRect();
+
+    this.expandedCard = card;
+    this.expandedSnapshot = {
+      card,
+      parent: card.parentNode,
+      nextSibling: card.nextSibling,
+      style: card.getAttribute("style") || "",
+      rect: startRect,
+      progress: this.currentProgress
+    };
+
+    this.container.dataset.expanded = "true";
+    this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "true");
+    this.cards.forEach((candidate) => candidate.classList.toggle("is-expansion-muted", candidate !== card));
+    card.classList.add("is-expanded", "is-expanding");
+    card.classList.remove("is-hovered");
+    this.updateWindowToggle(card, true);
+    this.root.body.append(card);
+
+    gsap.killTweensOf(card);
+    card.style.position = "fixed";
+    card.style.left = `${startRect.left}px`;
+    card.style.top = `${startRect.top}px`;
+    card.style.width = `${startRect.width}px`;
+    card.style.height = `${startRect.height}px`;
+    card.style.transform = "none";
+    card.style.zIndex = "5000";
+    card.style.opacity = "1";
+    card.style.skewY = "0deg";
+    card.style.pointerEvents = "auto";
+
+    this.expandTween?.kill();
+    this.expandTween = gsap.to(card, {
+      left: targetRect.left,
+      top: targetRect.top,
+      width: targetRect.width,
+      height: targetRect.height,
+      duration: 0.7,
+      ease: "power3.inOut",
+      overwrite: true,
+      onComplete: () => {
+        card.classList.remove("is-expanding");
+        card.classList.add("is-expanded-settled");
+        this.expandTween = null;
+      }
+    });
+  }
+
+  restoreExpandedCard() {
+    const card = this.expandedCard;
+    const snapshot = this.expandedSnapshot;
+    if (!card || !snapshot || this.isRestoringExpandedCard) return;
+
+    this.isRestoringExpandedCard = true;
+    card.classList.remove("is-expanded-settled", "is-expanding");
+    card.classList.add("is-restoring");
+    this.updateWindowToggle(card, false);
+
+    this.expandTween?.kill();
+    this.expandTween = gsap.to(card, {
+      left: snapshot.rect.left,
+      top: snapshot.rect.top,
+      width: snapshot.rect.width,
+      height: snapshot.rect.height,
+      duration: 0.58,
+      ease: "power3.inOut",
+      overwrite: true,
+      onComplete: () => {
+        card.classList.remove("is-expanded", "is-restoring");
+        this.cards.forEach((candidate) => candidate.classList.remove("is-expansion-muted"));
+        if (snapshot.parent) {
+          if (snapshot.nextSibling?.parentNode === snapshot.parent) {
+            snapshot.parent.insertBefore(card, snapshot.nextSibling);
+          } else {
+            snapshot.parent.append(card);
+          }
+        }
+        card.setAttribute("style", snapshot.style);
+        this.container.dataset.expanded = "false";
+        this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "false");
+        this.expandedCard = null;
+        this.expandedSnapshot = null;
+        this.isRestoringExpandedCard = false;
+        this.expandTween = null;
+        this.currentProgress = snapshot.progress;
+        this.targetProgress = snapshot.progress;
+        this.renderProgress(this.currentProgress);
+        this.syncHoverPauseFromPointer({ schedule: true });
+      }
+    });
+  }
+
   updateCardRoles() {
     this.cards.forEach((card) => {
       card.classList.remove("is-front", "is-middle", "is-back");
@@ -1684,7 +2021,7 @@ class CardSwap {
   }
 
   swap({ direction = 1, source = "auto" } = {}) {
-    if (this.order.length < 2 || this.isDestroyed) return;
+    if (this.order.length < 2 || this.isDestroyed || this.expandedCard) return;
     if (source === "auto" && this.isAnimating) return;
 
     this.advanceProgress(direction >= 0 ? 1 : -1, { source });
