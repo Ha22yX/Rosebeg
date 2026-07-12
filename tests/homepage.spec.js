@@ -408,8 +408,53 @@ test("expands the active photography circle into an in-page full image", async (
 
   await page.locator(".action-button.active").click();
   await expect(page.locator("[data-photo-lightbox]")).toBeVisible();
-  await expect(page.locator(".photo-lightbox-visual img")).toHaveAttribute("src", /\/assets\/photography\/.*-large\.jpg$/);
+  await expect(page.locator("[data-infinite-menu] canvas")).toHaveAttribute("data-hidden-instance-index", /\d+/);
+  await expect(page.locator(".photo-lightbox-visual")).toHaveAttribute("data-origin-source", "webgl-active-disc");
+  await expect(page.locator("[data-photo-lightbox-cover]")).toHaveCount(0);
+  await expect(page.locator("[data-photo-lightbox-media]")).toHaveAttribute(
+    "src",
+    /\/assets\/photography\/.*-large\.jpg$/
+  );
+  await expect(page.locator("[data-photo-lightbox-media]")).toHaveJSProperty("complete", true);
+  await expect(page.locator("[data-photo-lightbox-media]")).toHaveCSS("object-fit", "cover");
+  await expect(page.locator(".photo-lightbox-visual")).toHaveCSS("border-top-width", "0px");
+  await expect(page.locator("[data-photo-lightbox]")).toHaveClass(/is-expanded/);
+
+  const visualBox = await page.locator(".photo-lightbox-visual").boundingBox();
+  const mediaBox = await page.locator("[data-photo-lightbox-media]").boundingBox();
+  if (!visualBox || !mediaBox) {
+    throw new Error("Lightbox geometry was not measurable.");
+  }
+  expect(Math.abs(visualBox.x - mediaBox.x)).toBeLessThan(1);
+  expect(Math.abs(visualBox.y - mediaBox.y)).toBeLessThan(1);
+  expect(Math.abs(visualBox.width - mediaBox.width)).toBeLessThan(1);
+  expect(Math.abs(visualBox.height - mediaBox.height)).toBeLessThan(1);
 
   await page.locator("[data-photo-lightbox]").click({ position: { x: 10, y: 10 } });
+  await page.waitForFunction(() => {
+    const lightbox = document.querySelector("[data-photo-lightbox]");
+    const canvas = document.querySelector("[data-infinite-menu] canvas");
+
+    return Boolean(
+      lightbox?.classList.contains("is-closing") &&
+        window.getComputedStyle(lightbox).pointerEvents === "auto" &&
+        canvas?.hasAttribute("data-hidden-instance-index") &&
+        document.querySelectorAll(".action-button.active").length === 0
+    );
+  });
+
+  const menuBox = await page.locator("[data-infinite-menu]").boundingBox();
+  if (!menuBox) {
+    throw new Error("Photography menu was not measurable during lightbox close.");
+  }
+
+  await page.mouse.move(menuBox.x + menuBox.width / 2, menuBox.y + menuBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(menuBox.x + menuBox.width / 2 - 120, menuBox.y + menuBox.height / 2 - 30, { steps: 4 });
+  await expect(page.locator("[data-infinite-menu]")).toHaveAttribute("data-moving", "false");
+  await page.mouse.up();
+
   await expect(page.locator("[data-photo-lightbox]")).toHaveCount(0);
+  await expect(page.locator("[data-infinite-menu] canvas")).not.toHaveAttribute("data-hidden-instance-index", /\d+/);
+  await expect(page.locator(".action-button.active")).toBeVisible();
 });

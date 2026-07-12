@@ -1,6 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { mat4, quat, vec2, vec3 } from "gl-matrix";
+import { mat4, quat, vec2, vec3, vec4 } from "gl-matrix";
 
 const discVertShaderSource = `#version 300 es
 
@@ -51,6 +51,8 @@ precision highp float;
 uniform sampler2D uTex;
 uniform int uItemCount;
 uniform int uAtlasSize;
+uniform int uHiddenInstanceId;
+uniform float uHiddenInstanceOpacity;
 
 out vec4 outColor;
 
@@ -72,6 +74,10 @@ void main() {
 
   outColor = texture(uTex, st);
   outColor.a *= vAlpha;
+
+  if (vInstanceId == uHiddenInstanceId) {
+    outColor.a *= uHiddenInstanceOpacity;
+  }
 }
 `;
 
@@ -90,6 +96,8 @@ type InfiniteMenuProps = {
 
 type ViewerState = {
   item: InfiniteMenuItem;
+  originSource: "webgl-active-disc" | "canvas-fallback";
+  hiddenInstanceIndex: number | null;
   origin: {
     left: number;
     top: number;
@@ -103,6 +111,32 @@ type ViewerState = {
     height: number;
   };
 };
+
+const imageDecodeCache = new Map<string, Promise<void>>();
+const lightboxThumbnailRevealDelayMs = 360;
+const lightboxThumbnailRevealMs = 240;
+const lightboxUnmountDelayMs = 680;
+
+function preloadImage(src: string) {
+  if (!imageDecodeCache.has(src)) {
+    imageDecodeCache.set(
+      src,
+      new Promise((resolve) => {
+        const image = new Image();
+        image.decoding = "async";
+        image.onload = () => resolve();
+        image.onerror = () => resolve();
+        image.src = src;
+
+        if (image.decode) {
+          image.decode().then(resolve).catch(resolve);
+        }
+      })
+    );
+  }
+
+  return imageDecodeCache.get(src) as Promise<void>;
+}
 
 function getTargetRect(aspect = 4 / 3) {
   const maxWidth = window.innerWidth * 0.88;
@@ -134,6 +168,22 @@ function getViewerStyle(viewer: ViewerState) {
     "--target-width": `${viewer.target.width}px`,
     "--target-height": `${viewer.target.height}px`,
   } as CSSProperties;
+}
+
+function drawImageCover(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  size: number
+) {
+  const sourceWidth = image.naturalWidth || image.width || size;
+  const sourceHeight = image.naturalHeight || image.height || size;
+  const sourceSize = Math.min(sourceWidth, sourceHeight);
+  const sourceX = (sourceWidth - sourceSize) / 2;
+  const sourceY = (sourceHeight - sourceSize) / 2;
+
+  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, x, y, size, size);
 }
 
 class Face {
@@ -670,6 +720,14 @@ class InfiniteGridMenu {
   private frames = 0;
   private animationFrame = 0;
   private nearestVertexIndex = 0;
+  private hiddenInstanceIndex: number | null = null;
+  private hiddenInstanceOpacity = 1;
+  private hiddenInstanceFade: {
+    from: number;
+    to: number;
+    startedAt: number;
+    duration: number;
+  } | null = null;
   private smoothRotationVelocity = 0;
   private movementActive = false;
   private gl: WebGL2RenderingContext;
@@ -741,6 +799,8 @@ class InfiniteGridMenu {
       uFrames: gl.getUniformLocation(program, "uFrames"),
       uItemCount: gl.getUniformLocation(program, "uItemCount"),
       uAtlasSize: gl.getUniformLocation(program, "uAtlasSize"),
+      uHiddenInstanceId: gl.getUniformLocation(program, "uHiddenInstanceId"),
+      uHiddenInstanceOpacity: gl.getUniformLocation(program, "uHiddenInstanceOpacity"),
     };
 
     const discGeometry = new DiscGeometry(56, 1);
@@ -771,6 +831,108 @@ class InfiniteGridMenu {
   dispose() {
     cancelAnimationFrame(this.animationFrame);
     this.control.dispose();
+    this.setHiddenInstanceIndex(null);
+  }
+
+  setHiddenInstanceIndex(index: number | null, opacity = 0) {
+    this.hiddenInstanceIndex = index;
+    this.hiddenInstanceOpacity = index === null ? 1 : opacity;
+    this.hiddenInstanceFade = null;
+
+    if (index === null) {
+      delete this.canvas.dataset.hiddenInstanceIndex;
+    } else {
+      this.canvas.dataset.hiddenInstanceIndex = String(index);
+    }
+  }
+
+  fadeHiddenInstanceTo(opacity: number, duration = lightboxThumbnailRevealMs) {
+    if (this.hiddenInstanceIndex === null) {
+      return;
+    }
+
+    this.hiddenInstanceFade = {
+      from: this.hiddenInstanceOpacity,
+      to: Math.max(0, Math.min(1, opacity)),
+      startedAt: performance.now(),
+      duration: Math.max(1, duration),
+    };
+  }
+
+  getActiveDiscSnapshot() {
+    const rect = this.getActiveDiscRect();
+    return rect ? { ...rect, instanceIndex: this.nearestVertexIndex } : null;
+  }
+
+  private getActiveDiscRect() {
+    const matrix = this.discInstances.matrices[this.nearestVertexIndex];
+    const canvasRect = this.canvas.getBoundingClientRect();
+
+    if (!matrix || canvasRect.width <= 0 || canvasRect.height <= 0) {
+      return null;
+    }
+
+    const center = vec4.fromValues(0, 0, 0, 1);
+    vec4.transformMat4(center, center, matrix);
+    vec4.transformMat4(center, center, this.worldMatrix);
+    const radius = Math.hypot(center[0], center[1], center[2]);
+
+    if (!Number.isFinite(radius) || radius <= 0) {
+      return null;
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    const vertices = this.discBuffers.vertices;
+
+    for (let index = 0; index < vertices.length; index += 3) {
+      const worldPosition = vec4.fromValues(vertices[index], vertices[index + 1], vertices[index + 2], 1);
+      vec4.transformMat4(worldPosition, worldPosition, matrix);
+      vec4.transformMat4(worldPosition, worldPosition, this.worldMatrix);
+
+      const normalized = vec3.fromValues(worldPosition[0], worldPosition[1], worldPosition[2]);
+      vec3.normalize(normalized, normalized);
+      vec3.scale(normalized, normalized, radius);
+
+      const projected = vec4.fromValues(normalized[0], normalized[1], normalized[2], 1);
+      vec4.transformMat4(projected, projected, this.camera.matrices.view);
+      vec4.transformMat4(projected, projected, this.camera.matrices.projection);
+
+      if (!Number.isFinite(projected[3]) || Math.abs(projected[3]) < 0.0001) {
+        continue;
+      }
+
+      const ndcX = projected[0] / projected[3];
+      const ndcY = projected[1] / projected[3];
+      const screenX = canvasRect.left + (ndcX * 0.5 + 0.5) * canvasRect.width;
+      const screenY = canvasRect.top + (1 - (ndcY * 0.5 + 0.5)) * canvasRect.height;
+
+      minX = Math.min(minX, screenX);
+      maxX = Math.max(maxX, screenX);
+      minY = Math.min(minY, screenY);
+      maxY = Math.max(maxY, screenY);
+    }
+
+    if (![minX, maxX, minY, maxY].every(Number.isFinite)) {
+      return null;
+    }
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const size = Math.max(width, height);
+
+    if (size <= 0) {
+      return null;
+    }
+
+    return {
+      left: minX + width / 2 - size / 2,
+      top: minY + height / 2 - size / 2,
+      width: size,
+      height: size,
+    };
   }
 
   resize() {
@@ -814,14 +976,14 @@ class InfiniteGridMenu {
             image.crossOrigin = "anonymous";
             image.onload = () => resolve(image);
             image.onerror = () => resolve(image);
-            image.src = item.image;
+            image.src = item.link || item.image;
           })
       )
     ).then((images) => {
       images.forEach((image, index) => {
         const x = (index % atlasSize) * cellSize;
         const y = Math.floor(index / atlasSize) * cellSize;
-        context.drawImage(image, x, y, cellSize, cellSize);
+        drawImageCover(context, image, x, y, cellSize);
       });
 
       gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -894,6 +1056,7 @@ class InfiniteGridMenu {
 
   private render() {
     const gl = this.gl;
+    this.updateHiddenInstanceFade();
     gl.useProgram(this.discProgram);
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
@@ -922,12 +1085,30 @@ class InfiniteGridMenu {
     );
     gl.uniform1i(this.discLocations.uItemCount as WebGLUniformLocation, this.items.length);
     gl.uniform1i(this.discLocations.uAtlasSize as WebGLUniformLocation, this.atlasSize);
+    gl.uniform1i(this.discLocations.uHiddenInstanceId as WebGLUniformLocation, this.hiddenInstanceIndex ?? -1);
+    gl.uniform1f(this.discLocations.uHiddenInstanceOpacity as WebGLUniformLocation, this.hiddenInstanceOpacity);
     gl.uniform1f(this.discLocations.uFrames as WebGLUniformLocation, this.frames);
     gl.uniform1i(this.discLocations.uTex as WebGLUniformLocation, 0);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.bindVertexArray(this.discVAO);
     gl.drawElementsInstanced(gl.TRIANGLES, this.discBuffers.indices.length, gl.UNSIGNED_SHORT, 0, this.instancePositions.length);
+  }
+
+  private updateHiddenInstanceFade() {
+    if (!this.hiddenInstanceFade) {
+      return;
+    }
+
+    const progress = Math.min(1, (performance.now() - this.hiddenInstanceFade.startedAt) / this.hiddenInstanceFade.duration);
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+    this.hiddenInstanceOpacity =
+      this.hiddenInstanceFade.from + (this.hiddenInstanceFade.to - this.hiddenInstanceFade.from) * easedProgress;
+
+    if (progress >= 1) {
+      this.hiddenInstanceOpacity = this.hiddenInstanceFade.to;
+      this.hiddenInstanceFade = null;
+    }
   }
 
   private updateCameraMatrix() {
@@ -1015,11 +1196,14 @@ const defaultItems: InfiniteMenuItem[] = [
 
 export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sketchRef = useRef<InfiniteGridMenu | null>(null);
   const closeTimerRef = useRef<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
   const [activeItem, setActiveItem] = useState<InfiniteMenuItem | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const [viewer, setViewer] = useState<ViewerState | null>(null);
   const [viewerExpanded, setViewerExpanded] = useState(false);
+  const [viewerClosing, setViewerClosing] = useState(false);
   const sourceItems = items.length ? items : defaultItems;
 
   useEffect(() => {
@@ -1035,6 +1219,7 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       setIsMoving,
       scale
     );
+    sketchRef.current = sketch;
 
     const handleResize = () => sketch.resize();
     window.addEventListener("resize", handleResize);
@@ -1043,12 +1228,24 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
     return () => {
       window.removeEventListener("resize", handleResize);
       sketch.dispose();
+      sketchRef.current = null;
     };
   }, [sourceItems, scale]);
 
-  const openViewer = () => {
+  useEffect(() => {
+    sourceItems.forEach((item) => {
+      if (item.link) {
+        void preloadImage(item.link);
+      }
+    });
+  }, [sourceItems]);
+
+  const openViewer = async () => {
     const canvas = canvasRef.current;
-    if (!canvas || !activeItem?.link) {
+    const item = activeItem;
+    const sketch = sketchRef.current;
+
+    if (!canvas || !item?.link || !sketch) {
       return;
     }
 
@@ -1056,35 +1253,75 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+    setViewerClosing(false);
+
+    await preloadImage(item.link);
+
+    const activeSnapshot = sketch.getActiveDiscSnapshot();
 
     const rect = canvas.getBoundingClientRect();
     const diameter = Math.min(rect.width, rect.height) * 0.54;
+    const fallbackOrigin = {
+      left: rect.left + rect.width / 2 - diameter / 2,
+      top: rect.top + rect.height / 2 - diameter / 2,
+      width: diameter,
+      height: diameter,
+    };
+    const origin = activeSnapshot
+      ? {
+          left: activeSnapshot.left,
+          top: activeSnapshot.top,
+          width: activeSnapshot.width,
+          height: activeSnapshot.height,
+        }
+      : fallbackOrigin;
+    const target = getTargetRect(item.aspect);
+    const hiddenInstanceIndex = activeSnapshot?.instanceIndex ?? null;
 
+    sketch.setHiddenInstanceIndex(hiddenInstanceIndex, 0);
+
+    setViewerExpanded(false);
     setViewer({
-      item: activeItem,
-      origin: {
-        left: rect.left + rect.width / 2 - diameter / 2,
-        top: rect.top + rect.height / 2 - diameter / 2,
-        width: diameter,
-        height: diameter,
-      },
-      target: getTargetRect(activeItem.aspect),
+      item,
+      originSource: activeSnapshot ? "webgl-active-disc" : "canvas-fallback",
+      hiddenInstanceIndex,
+      origin,
+      target,
     });
     window.requestAnimationFrame(() => setViewerExpanded(true));
   };
 
   const closeViewer = useCallback(() => {
+    if (viewerClosing) {
+      return;
+    }
+
+    setViewerClosing(true);
     setViewerExpanded(false);
 
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current);
     }
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+    }
+
+    revealTimerRef.current = window.setTimeout(() => {
+      sketchRef.current?.fadeHiddenInstanceTo(1, lightboxThumbnailRevealMs);
+      revealTimerRef.current = null;
+    }, lightboxThumbnailRevealDelayMs);
 
     closeTimerRef.current = window.setTimeout(() => {
+      sketchRef.current?.setHiddenInstanceIndex(null);
       setViewer(null);
+      setViewerClosing(false);
       closeTimerRef.current = null;
-    }, 560);
-  }, []);
+    }, lightboxUnmountDelayMs);
+  }, [viewerClosing]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1105,10 +1342,13 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
     const onResize = () => {
       setViewer((currentViewer) =>
         currentViewer
-          ? {
-              ...currentViewer,
-              target: getTargetRect(currentViewer.item.aspect),
-            }
+          ? (() => {
+              const target = getTargetRect(currentViewer.item.aspect);
+              return {
+                ...currentViewer,
+                target,
+              };
+            })()
           : currentViewer
       );
     };
@@ -1122,8 +1362,21 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current);
       }
+      if (revealTimerRef.current) {
+        window.clearTimeout(revealTimerRef.current);
+      }
+      sketchRef.current?.setHiddenInstanceIndex(null);
     };
   }, []);
+
+  const isViewerHoldingMenu = Boolean(viewer);
+  const lightboxClassName = [
+    "photo-lightbox",
+    viewerExpanded && !viewerClosing ? "is-expanded" : "",
+    viewerClosing ? "is-closing" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="infinite-menu" data-infinite-menu data-moving={isMoving ? "true" : "false"}>
@@ -1131,12 +1384,14 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
 
       {activeItem && (
         <>
-          <h2 className={`face-title ${isMoving ? "inactive" : "active"}`}>{activeItem.title}</h2>
-          <p className={`face-description ${isMoving ? "inactive" : "active"}`}>{activeItem.description}</p>
+          <h2 className={`face-title ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}>{activeItem.title}</h2>
+          <p className={`face-description ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}>
+            {activeItem.description}
+          </p>
           <button
             type="button"
             onClick={openViewer}
-            className={`action-button ${isMoving ? "inactive" : "active"}`}
+            className={`action-button ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}
             aria-label={`Open ${activeItem.title}`}
           >
             <span className="action-button-icon" aria-hidden="true">
@@ -1149,16 +1404,23 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       {viewer &&
         createPortal(
           <div
-            className={viewerExpanded ? "photo-lightbox is-expanded" : "photo-lightbox"}
+            className={lightboxClassName}
             data-photo-lightbox
             onPointerDown={closeViewer}
+            onWheel={(event) => event.preventDefault()}
           >
             <figure
               className="photo-lightbox-visual"
+              data-origin-source={viewer.originSource}
               style={getViewerStyle(viewer)}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <img src={viewer.item.link} alt={viewer.item.title} />
+              <img
+                className="photo-lightbox-media"
+                data-photo-lightbox-media
+                src={viewer.item.link}
+                alt={viewer.item.title}
+              />
               <figcaption>
                 <strong>{viewer.item.title}</strong>
                 <span>{viewer.item.description}</span>
