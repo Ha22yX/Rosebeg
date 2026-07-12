@@ -4,10 +4,42 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Rosebeg digital manifesto" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Who" })).toBeVisible();
-  await expect(page.locator("iframe[title='Selected Code Works']")).toBeVisible();
-  await expect(page.locator("[data-infinite-menu]")).toBeVisible();
+  await expect(page.locator("#works")).toBeAttached();
+  await expect(page.locator("#photos")).toBeAttached();
   await expect(page.getByRole("heading", { name: "Social" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
+});
+
+test("defers heavy offscreen renderers and preloads them near their sections", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("iframe[title='Selected Code Works']")).toHaveCount(0);
+  await expect(page.locator("[data-infinite-menu]")).toHaveCount(0);
+  await expect(page.locator("[data-performance-placeholder='works']")).toBeAttached();
+  await expect(page.locator("[data-performance-placeholder='photos']")).toBeAttached();
+
+  await page.locator("#works").scrollIntoViewIfNeeded();
+  await expect(page.locator("iframe[title='Selected Code Works']")).toBeVisible();
+
+  await page.locator("#photos").scrollIntoViewIfNeeded();
+  await expect(page.locator("[data-infinite-menu]")).toBeVisible();
+});
+
+test("pauses hero ASCII rendering after the hero leaves the viewport", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-render-active", "true");
+
+  await page.locator("#works").scrollIntoViewIfNeeded();
+  await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-render-active", "false");
+});
+
+test("uses a lightweight photography gallery on mobile instead of WebGL", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
+
+  await expect(page.locator("[data-mobile-photo-gallery]")).toBeVisible();
+  await expect(page.locator("[data-infinite-menu]")).toHaveCount(0);
+  await expect(page.locator("#infinite-grid-menu-canvas")).toHaveCount(0);
 });
 
 test("embeds the selected code works card swap section without its standalone background", async ({ page }) => {
@@ -223,9 +255,8 @@ test("smoothly scrolls to navigation targets instead of jumping instantly", asyn
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("menuitem", { name: "Photos" }).click();
 
-  await page.waitForTimeout(80);
+  await page.waitForFunction(() => window.scrollY > 0, { timeout: 800 });
   const duringScroll = await page.evaluate(() => window.scrollY);
-  expect(duringScroll).toBeGreaterThan(0);
   expect(duringScroll).toBeLessThan(targetTop - 180);
 
   await expect
@@ -410,6 +441,7 @@ test("layers an ASCII text renderer over the typewriter title", async ({ page })
 
 test("exposes photography menu items and social placeholders", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const menu = page.locator("[data-infinite-menu]");
   const actionButton = page.locator(".action-button.active");
   const actionIcon = actionButton.locator(".action-button-icon");
@@ -450,6 +482,7 @@ test("exposes photography menu items and social placeholders", async ({ page }) 
 test("widens the photography stage without scaling the focused content", async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1080 });
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const canvas = page.locator("#infinite-grid-menu-canvas");
   const title = page.locator(".face-title.active");
   const description = page.locator(".face-description.active");
@@ -475,6 +508,7 @@ test("starts the photography menu from a randomized image", async ({ page }) => 
   });
 
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const menu = page.locator("[data-infinite-menu]");
   const title = page.locator(".face-title.active");
 
@@ -484,6 +518,7 @@ test("starts the photography menu from a randomized image", async ({ page }) => 
 
 test("turns the photography menu as a sphere while dragging and restores on release", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const menu = page.locator("[data-infinite-menu]");
   const canvas = page.locator("#infinite-grid-menu-canvas");
   await canvas.scrollIntoViewIfNeeded();
@@ -501,6 +536,7 @@ test("turns the photography menu as a sphere while dragging and restores on rele
 
 test("keeps the photography sphere stable when the pointer crosses the canvas boundary", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const menu = page.locator("[data-infinite-menu]");
   const canvas = page.locator("#infinite-grid-menu-canvas");
   await canvas.scrollIntoViewIfNeeded();
@@ -558,6 +594,7 @@ test("keeps the photography sphere stable when the pointer crosses the canvas bo
 
 test("expands the active photography circle into an in-page full image", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   await expect(page.locator(".action-button.active")).toBeVisible();
 
   await page.locator(".action-button.active").click();
@@ -620,6 +657,7 @@ test("expands the active photography circle into an in-page full image", async (
 
 test("keeps the closing photo circle attached to the scrolled menu position", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#photos").scrollIntoViewIfNeeded();
   const canvas = page.locator("#infinite-grid-menu-canvas");
   await canvas.scrollIntoViewIfNeeded();
   await expect(page.locator(".action-button.active")).toBeVisible();

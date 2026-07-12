@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 type ShaderBackgroundProps = {
   className?: string;
+  performanceMode?: "full" | "mobile";
 };
 
 const VERT = `attribute vec2 a_position;
@@ -270,7 +271,7 @@ const UNIFORMS = {
   timeScale: 0.42,
 };
 
-export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
+export function ShaderBackground({ className = "", performanceMode = "full" }: ShaderBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -418,7 +419,17 @@ export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
     const start = performance.now();
     let lastNow: number | null = null;
 
+    const maxPixelRatio = performanceMode === "mobile" ? 1 : 1.5;
+    const targetFrameMs = performanceMode === "mobile" ? 33 : 0;
+    let lastDrawNow = 0;
+
     const render = (now: number) => {
+      if (targetFrameMs > 0 && lastDrawNow > 0 && now - lastDrawNow < targetFrameMs) {
+        raf = requestAnimationFrame(render);
+        return;
+      }
+      lastDrawNow = now;
+
       const dt = lastNow === null ? 0 : Math.min((now - lastNow) / 1000, 0.1);
       lastNow = now;
       const follow = 1 - Math.exp(-12 * dt);
@@ -427,7 +438,7 @@ export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
       cursorPresence += (targetPresence - cursorPresence) * follow;
       scrollOffset += (targetScrollOffset - scrollOffset) * (1 - Math.exp(-4 * dt));
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
       const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
       const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
       if (canvas.width !== w || canvas.height !== h) {
@@ -452,6 +463,7 @@ export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
       canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
       canvas.dataset.shaderTime = shaderTime.toFixed(4);
       canvas.dataset.flowOffsetY = flowOffsetY.toFixed(4);
+      canvas.dataset.performanceMode = performanceMode;
       raf = requestAnimationFrame(render);
     };
 
@@ -471,7 +483,7 @@ export function ShaderBackground({ className = "" }: ShaderBackgroundProps) {
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
     };
-  }, []);
+  }, [performanceMode]);
 
   return (
     <div

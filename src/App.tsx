@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ASCIIText } from "@/components/ui/ascii-text";
-import { InfiniteMenu, type InfiniteMenuItem } from "@/components/ui/infinite-menu";
+import type { InfiniteMenuItem } from "@/components/ui/infinite-menu";
 import {
   ManifestoTypewriter,
   type ManifestoTitleState,
 } from "@/components/ui/manifesto-typewriter";
 import { SignalNavigation } from "@/components/ui/signal-navigation";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
+
+const InfiniteMenu = lazy(() =>
+  import("@/components/ui/infinite-menu").then((module) => ({ default: module.InfiniteMenu }))
+);
 
 const compactAsciiLayoutTitle = `A personal
 portfolio
@@ -70,6 +74,78 @@ const socials = [
   ["Instagram", "#"],
   ["Email", "mailto:hello@rosebeg.com"],
 ];
+
+function useViewportGate<T extends HTMLElement>({
+  preloadMargin = "720px",
+  activeMargin = "0px",
+  threshold = 0.01,
+}: {
+  preloadMargin?: string;
+  activeMargin?: string;
+  threshold?: number;
+} = {}) {
+  const ref = useRef<T | null>(null);
+  const [isNear, setIsNear] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setIsNear(true);
+      setIsActive(true);
+      return undefined;
+    }
+
+    const nearObserver = new IntersectionObserver(
+      ([entry]) => setIsNear(entry.isIntersecting),
+      { root: null, rootMargin: preloadMargin, threshold: 0 }
+    );
+    const activeObserver = new IntersectionObserver(
+      ([entry]) => setIsActive(entry.isIntersecting),
+      { root: null, rootMargin: activeMargin, threshold }
+    );
+
+    nearObserver.observe(node);
+    activeObserver.observe(node);
+
+    return () => {
+      nearObserver.disconnect();
+      activeObserver.disconnect();
+    };
+  }, [activeMargin, preloadMargin, threshold]);
+
+  return { ref, isNear, isActive };
+}
+
+function PerformancePlaceholder({ label, kind }: { label: string; kind: string }) {
+  return (
+    <div className="performance-placeholder" data-performance-placeholder={kind} aria-hidden="true">
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function MobilePhotoGallery({ items }: { items: InfiniteMenuItem[] }) {
+  const featured = items[0];
+  const supporting = items.slice(1, 5);
+
+  return (
+    <div className="mobile-photo-gallery" data-mobile-photo-gallery>
+      <figure className="mobile-photo-feature">
+        <img src={featured.image} alt={featured.title} loading="lazy" decoding="async" />
+        <figcaption>
+          <strong>{featured.title}</strong>
+          <span>{featured.description}</span>
+        </figcaption>
+      </figure>
+      <div className="mobile-photo-strip" aria-label="Photography thumbnails">
+        {supporting.map((item) => (
+          <img src={item.image} alt={item.title} loading="lazy" decoding="async" key={item.title} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function formatAsciiTitle(text: string, compact: boolean) {
   if (!compact) {
@@ -168,7 +244,17 @@ function getAsciiTitleLayers(text: string, targetText: string, compact: boolean)
 function App() {
   const [titleState, setTitleState] = useState<ManifestoTitleState>(initialTitleState);
   const [isCompact, setIsCompact] = useState(false);
+  const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "120px", activeMargin: "80px" });
+  const worksGate = useViewportGate<HTMLElement>({
+    preloadMargin: isMobilePerformanceMode ? "360px" : "680px",
+    activeMargin: "160px",
+  });
+  const photosGate = useViewportGate<HTMLElement>({
+    preloadMargin: isMobilePerformanceMode ? "420px" : "760px",
+    activeMargin: "160px",
+  });
   const asciiTitle = getAsciiTitleLayers(titleState.displayText, titleState.targetText, isCompact);
   const asciiRender = getAsciiRenderConfig(titleState.targetText, isCompact);
 
@@ -180,12 +266,23 @@ function App() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+    const sync = () => setIsMobilePerformanceMode(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
   return (
     <>
-      <ShaderBackground className={isNavigationOpen ? "is-navigation-open" : ""} />
+      <ShaderBackground
+        className={isNavigationOpen ? "is-navigation-open" : ""}
+        performanceMode={isMobilePerformanceMode ? "mobile" : "full"}
+      />
       <div className={isNavigationOpen ? "page-stage is-navigation-open" : "page-stage"} data-page-stage>
         <main className="site-shell">
-          <section id="hero" className="hero-panel" aria-labelledby="hero-title">
+          <section id="hero" className="hero-panel" aria-labelledby="hero-title" ref={heroGate.ref}>
             <div className="hero-stage">
               <h1
                 id="hero-title"
@@ -208,7 +305,8 @@ function App() {
                       planeBaseHeight={asciiRender.planeBaseHeight}
                       alignMode={asciiTitle.baseAlignMode}
                       resizeMode="debounced"
-                      enableWaves
+                      enableWaves={!isMobilePerformanceMode}
+                      active={heroGate.isNear}
                     />
                   </span>
                   <span className="ascii-title-accent" data-ascii-accent>
@@ -223,7 +321,8 @@ function App() {
                       planeBaseHeight={asciiRender.planeBaseHeight}
                       alignMode="layout"
                       resizeMode="debounced"
-                      enableWaves
+                      enableWaves={!isMobilePerformanceMode}
+                      active={heroGate.isNear}
                     />
                   </span>
                 </span>
@@ -245,17 +344,41 @@ function App() {
           </div>
         </section>
 
-          <section id="works" className="section-panel code-works-panel" aria-label="Selected code works">
-            <iframe
-              className="code-works-frame"
-              title="Selected Code Works"
-              src="/project-card-swap/index.html"
-              loading="lazy"
-            />
+          <section
+            id="works"
+            className="section-panel code-works-panel"
+            aria-label="Selected code works"
+            ref={worksGate.ref}
+          >
+            {worksGate.isNear ? (
+              <iframe
+                className="code-works-frame"
+                title="Selected Code Works"
+                src="/project-card-swap/index.html"
+                loading="lazy"
+              />
+            ) : (
+              <PerformancePlaceholder label="Selected code works preloading" kind="works" />
+            )}
           </section>
 
-          <section id="photos" className="section-panel photography-panel" aria-label="Photography">
-            <InfiniteMenu items={photographyItems} scale={1} />
+          <section
+            id="photos"
+            className="section-panel photography-panel"
+            aria-label="Photography"
+            ref={photosGate.ref}
+          >
+            {photosGate.isNear ? (
+              isMobilePerformanceMode ? (
+                <MobilePhotoGallery items={photographyItems} />
+              ) : (
+                <Suspense fallback={<PerformancePlaceholder label="Photography field preloading" kind="photos" />}>
+                  <InfiniteMenu items={photographyItems} scale={1} active={photosGate.isActive} />
+                </Suspense>
+              )
+            ) : (
+              <PerformancePlaceholder label="Photography field preloading" kind="photos" />
+            )}
           </section>
 
         <section id="social" className="section-panel social-panel" aria-labelledby="social-title">

@@ -292,6 +292,7 @@ class CanvasAscii {
   material?: THREE.ShaderMaterial;
   mesh?: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   animationFrameId = 0;
+  isRunning = false;
   mouse = { x: 0, y: 0 };
   center = { x: 0, y: 0 };
 
@@ -401,12 +402,40 @@ class CanvasAscii {
     this.center = { x: this.width / 2, y: this.height / 2 };
   }
 
-  load() {
+  load(active = true) {
+    if (!active) {
+      this.render();
+      return;
+    }
+
+    this.resume();
+  }
+
+  resume() {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.isRunning = true;
     const animateFrame = () => {
+      if (!this.isRunning) {
+        return;
+      }
+
       this.animationFrameId = requestAnimationFrame(animateFrame);
       this.render();
     };
     animateFrame();
+  }
+
+  pause() {
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.isRunning = false;
+    cancelAnimationFrame(this.animationFrameId);
+    this.animationFrameId = 0;
   }
 
   onMouseMove(evt: MouseEvent | TouchEvent) {
@@ -447,7 +476,7 @@ class CanvasAscii {
   }
 
   dispose() {
-    cancelAnimationFrame(this.animationFrameId);
+    this.pause();
     this.container.removeEventListener("mousemove", this.onMouseMove);
     this.container.removeEventListener("touchmove", this.onMouseMove);
     this.filter?.dispose();
@@ -474,6 +503,7 @@ export type ASCIITextProps = {
   enableWaves?: boolean;
   alignMode?: "center" | "anchored" | "layout";
   resizeMode?: "responsive" | "debounced" | "initial";
+  active?: boolean;
 };
 
 export function ASCIIText({
@@ -487,6 +517,7 @@ export function ASCIIText({
   enableWaves = true,
   alignMode = "center",
   resizeMode = "responsive",
+  active = true,
 }: ASCIITextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const asciiRef = useRef<CanvasAscii | null>(null);
@@ -539,7 +570,7 @@ export function ASCIIText({
       }
 
       asciiRef.current = instance;
-      instance.load();
+      instance.load(active);
 
       if (resizeMode !== "initial") {
         resizeObserver = new ResizeObserver((entries) => {
@@ -591,6 +622,14 @@ export function ASCIIText({
     textFontSize,
   ]);
 
+  useEffect(() => {
+    if (active) {
+      asciiRef.current?.resume();
+    } else {
+      asciiRef.current?.pause();
+    }
+  }, [active]);
+
   return (
     <div
       className="ascii-text-container"
@@ -598,6 +637,7 @@ export function ASCIIText({
       data-ascii-canvas
       data-ascii-font-size={asciiFontSize}
       data-anchor-text={anchorText}
+      data-render-active={active ? "true" : "false"}
       data-resize-mode={resizeMode}
       ref={containerRef}
     />

@@ -108,6 +108,7 @@ export type InfiniteMenuItem = {
 type InfiniteMenuProps = {
   items: InfiniteMenuItem[];
   scale?: number;
+  active?: boolean;
 };
 
 type ViewerState = {
@@ -755,6 +756,7 @@ class InfiniteGridMenu {
   private time = 0;
   private frames = 0;
   private animationFrame = 0;
+  private isRunning = false;
   private nearestVertexIndex = 0;
   private hiddenInstanceIndex: number | null = null;
   private hiddenInstanceOpacity = 1;
@@ -807,7 +809,8 @@ class InfiniteGridMenu {
     private readonly onActiveItemChange: (index: number) => void,
     private readonly onMovementChange: (isMoving: boolean) => void,
     private readonly scaleFactor = 1.0,
-    private readonly initialItemIndex = 0
+    private readonly initialItemIndex = 0,
+    private readonly autoStart = true
   ) {
     this.camera.position[2] = 3 * scaleFactor;
 
@@ -867,13 +870,37 @@ class InfiniteGridMenu {
     this.updateCameraMatrix();
     this.updateProjectionMatrix();
     this.resize();
-    this.run();
+    this.render();
+    if (autoStart) {
+      this.resume();
+    }
   }
 
   dispose() {
-    cancelAnimationFrame(this.animationFrame);
+    this.pause();
     this.control.dispose();
     this.setHiddenInstanceIndex(null);
+  }
+
+  pause() {
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.isRunning = false;
+    cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = 0;
+    this.onMovementChange(false);
+  }
+
+  resume() {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.isRunning = true;
+    this.time = performance.now();
+    this.animationFrame = requestAnimationFrame(this.run);
   }
 
   setHiddenInstanceIndex(index: number | null, opacity = 0) {
@@ -999,6 +1026,10 @@ class InfiniteGridMenu {
   }
 
   private run = (time = 0) => {
+    if (!this.isRunning) {
+      return;
+    }
+
     const deltaTime = Math.min(32, time - this.time);
     this.time = time;
     this.frames += deltaTime / this.targetFrameDuration;
@@ -1304,7 +1335,7 @@ const defaultItems: InfiniteMenuItem[] = [
   },
 ];
 
-export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
+export function InfiniteMenu({ items = [], scale = 1.0, active = true }: InfiniteMenuProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sketchRef = useRef<InfiniteGridMenu | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -1472,7 +1503,8 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       (index) => setActiveItem(sourceItems[index % sourceItems.length]),
       setIsMoving,
       scale,
-      initialItemIndex
+      initialItemIndex,
+      active
     );
     sketchRef.current = sketch;
 
@@ -1486,6 +1518,14 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       sketchRef.current = null;
     };
   }, [sourceItems, scale, initialItemIndex]);
+
+  useEffect(() => {
+    if (active) {
+      sketchRef.current?.resume();
+    } else {
+      sketchRef.current?.pause();
+    }
+  }, [active]);
 
   useEffect(() => {
     sourceItems.forEach((item) => {
@@ -1657,7 +1697,12 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       data-moving={isMoving ? "true" : "false"}
       data-viewer-lock={isViewerLockingCanvas ? "true" : "false"}
     >
-      <canvas id="infinite-grid-menu-canvas" ref={canvasRef} aria-label="Photography menu" />
+      <canvas
+        id="infinite-grid-menu-canvas"
+        ref={canvasRef}
+        aria-label="Photography menu"
+        data-render-active={active ? "true" : "false"}
+      />
 
       {activeItem && (
         <>
