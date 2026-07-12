@@ -63,7 +63,7 @@ test("does not overhold the opening Rosebeg sentence", async ({ page }) => {
         }, openedAt),
       { timeout: 3200, intervals: [50] }
     )
-    .toBeLessThan(2300);
+    .toBeLessThan(1600);
 });
 
 test("anchors the shared I am a prefix before the yellow role appears", async ({ page }) => {

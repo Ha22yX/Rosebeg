@@ -39,7 +39,7 @@ const rolePrefixPause = 420;
 
 const titleSequence: SequenceStep[] = [
   { action: "type", text: "This is Rosebeg", speed: typeSpeed, targetText: "This is Rosebeg" },
-  { action: "wait", duration: 1800, targetText: "This is Rosebeg" },
+  { action: "wait", duration: 1200, targetText: "This is Rosebeg" },
   { action: "delete", count: "This is Rosebeg".length, speed: deleteSpeed, targetText: "This is Rosebeg" },
   { action: "type", text: "A personal portfolio", speed: typeSpeed, targetText: "A personal portfolio by HarryX" },
   { action: "wait", duration: 520, targetText: "A personal portfolio by HarryX" },
