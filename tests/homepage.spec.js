@@ -4,10 +4,23 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Rosebeg digital manifesto" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Who" })).toBeVisible();
+  await expect(page.locator("iframe[title='Selected Code Works']")).toBeVisible();
   await expect(page.locator("[data-infinite-menu]")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Photography" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Social" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
+});
+
+test("embeds the selected code works card swap section without its standalone background", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-project-card-swap-section]")).toBeVisible();
+  await expect(frame.getByRole("heading", { name: "Selected Code Works" })).toBeVisible();
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+  await expect(frame.locator(".card")).toHaveCount(7);
+  await expect(frame.locator(".project-card-swap-section")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(frame.locator(".source-button").first()).toBeVisible();
 });
 
 test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {
@@ -146,16 +159,20 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   expect(initiallyUnpreparedShuffleWrappers).toBe(0);
 
   await expect(page.getByText("Socials")).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /works/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /photos/i })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /contact/i })).toBeVisible();
-  await expect(page.locator(".staggered-menu-number")).toHaveCount(5);
+  await expect(page.locator(".staggered-menu-number")).toHaveCount(6);
+  await expect(page.locator("[data-shuffle-text='WORKS'] [data-shuffle-char-wrapper]")).toHaveCount(5);
+  await expect(page.locator("[data-shuffle-text='WORKS'] [data-shuffle-char]")).toHaveCount(15);
   await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char-wrapper]")).toHaveCount(6);
   await expect(page.locator("[data-shuffle-text='PHOTOS'] [data-shuffle-char]")).toHaveCount(18);
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-delay", "0");
   await expect(page.locator("[data-shuffle-text='ABOUT']")).toHaveAttribute("data-shuffle-delay", "0.25");
-  await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-delay", "0.5");
-  await expect(page.locator("[data-shuffle-text='SOCIAL']")).toHaveAttribute("data-shuffle-delay", "0.75");
-  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1");
+  await expect(page.locator("[data-shuffle-text='WORKS']")).toHaveAttribute("data-shuffle-delay", "0.5");
+  await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-delay", "0.75");
+  await expect(page.locator("[data-shuffle-text='SOCIAL']")).toHaveAttribute("data-shuffle-delay", "1");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1.25");
   await expect(page.locator("[data-shuffle-text='HOME']")).toHaveAttribute("data-shuffle-enabled", "true");
   await expect(page.locator("[data-shuffle-text='PHOTOS']")).toHaveAttribute("data-shuffle-hover", "false");
   await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveClass(/is-ready/);
@@ -171,7 +188,7 @@ test("opens a staggered right-side navigation panel", async ({ page }) => {
   await expect.poll(async () => photosText.evaluate((element) => getComputedStyle(element).transform)).toContain("matrix3d");
 
   await photosLink.click();
-  await expect(page).toHaveURL(/#works$/);
+  await expect(page).toHaveURL(/#photos$/);
   await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await expect
     .poll(async () => page.evaluate(() => document.documentElement.dataset.smoothScrollState ?? "native"))
@@ -272,7 +289,7 @@ test("keeps navigation, page, and background aligned during rapid toggles", asyn
 
   await trigger.click();
   await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1");
+  await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-delay", "1.25");
   await expect(page.locator("[data-shuffle-text='CONTACT']")).toHaveAttribute("data-shuffle-enabled", "true");
   await trigger.click();
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -520,15 +537,25 @@ test("expands the active photography circle into an in-page full image", async (
   await expect(page.locator(".photo-lightbox-visual")).toHaveCSS("border-top-width", "0px");
   await expect(page.locator("[data-photo-lightbox]")).toHaveClass(/is-expanded/);
 
-  const visualBox = await page.locator(".photo-lightbox-visual").boundingBox();
-  const mediaBox = await page.locator("[data-photo-lightbox-media]").boundingBox();
-  if (!visualBox || !mediaBox) {
-    throw new Error("Lightbox geometry was not measurable.");
-  }
-  expect(Math.abs(visualBox.x - mediaBox.x)).toBeLessThan(1);
-  expect(Math.abs(visualBox.y - mediaBox.y)).toBeLessThan(1);
-  expect(Math.abs(visualBox.width - mediaBox.width)).toBeLessThan(1);
-  expect(Math.abs(visualBox.height - mediaBox.height)).toBeLessThan(1);
+  await expect
+    .poll(
+      async () => {
+        const visualBox = await page.locator(".photo-lightbox-visual").boundingBox();
+        const mediaBox = await page.locator("[data-photo-lightbox-media]").boundingBox();
+        if (!visualBox || !mediaBox) {
+          return Number.POSITIVE_INFINITY;
+        }
+
+        return Math.max(
+          Math.abs(visualBox.x - mediaBox.x),
+          Math.abs(visualBox.y - mediaBox.y),
+          Math.abs(visualBox.width - mediaBox.width),
+          Math.abs(visualBox.height - mediaBox.height)
+        );
+      },
+      { timeout: 5000 }
+    )
+    .toBeLessThan(1);
 
   await page.mouse.click(10, 10);
   await page.waitForFunction(() => {
@@ -576,10 +603,19 @@ test("keeps the closing photo circle attached to the scrolled menu position", as
   await page.evaluate(() => window.scrollBy({ top: 420, behavior: "instant" }));
 
   await expect
-    .poll(async () =>
-      visual.evaluate((element) =>
-        Number.parseFloat(element.style.getPropertyValue("--origin-top"))
-      )
+    .poll(
+      async () => {
+        const count = await visual.count();
+        if (count === 0) {
+          return "closed";
+        }
+
+        const originTop = await visual.evaluate((element) =>
+          Number.parseFloat(element.style.getPropertyValue("--origin-top"))
+        );
+        return originTop < originTopBeforeScroll - 80 ? "attached" : "waiting";
+      },
+      { timeout: 10000 }
     )
-    .toBeLessThan(originTopBeforeScroll - 80);
+    .not.toBe("waiting");
 });

@@ -1309,6 +1309,8 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const sketchRef = useRef<InfiniteGridMenu | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const revealTimerRef = useRef<number | null>(null);
+  const closingOriginFrameRef = useRef<number | null>(null);
+  const closingOriginDetachRef = useRef<(() => void) | null>(null);
   const [activeItem, setActiveItem] = useState<InfiniteMenuItem | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const [viewer, setViewer] = useState<ViewerState | null>(null);
@@ -1355,6 +1357,66 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       origin: getCanvasFallbackOrigin(canvas),
     };
   }, []);
+
+  const refreshClosingViewerOrigin = useCallback(() => {
+    const latestOrigin = getCurrentViewerOrigin();
+
+    if (!latestOrigin) {
+      return;
+    }
+
+    setViewer((currentViewer) =>
+      currentViewer
+        ? {
+            ...currentViewer,
+            originSource: latestOrigin.originSource,
+            hiddenInstanceIndex: latestOrigin.hiddenInstanceIndex,
+            origin: latestOrigin.origin,
+          }
+        : currentViewer
+    );
+  }, [getCurrentViewerOrigin]);
+
+  const scheduleClosingViewerOriginRefresh = useCallback(() => {
+    if (closingOriginFrameRef.current !== null) {
+      return;
+    }
+
+    closingOriginFrameRef.current = window.requestAnimationFrame(() => {
+      closingOriginFrameRef.current = null;
+      refreshClosingViewerOrigin();
+    });
+  }, [refreshClosingViewerOrigin]);
+
+  const detachClosingOriginListeners = useCallback(() => {
+    if (closingOriginDetachRef.current) {
+      closingOriginDetachRef.current();
+      closingOriginDetachRef.current = null;
+    }
+
+    if (closingOriginFrameRef.current !== null) {
+      window.cancelAnimationFrame(closingOriginFrameRef.current);
+      closingOriginFrameRef.current = null;
+    }
+  }, []);
+
+  const attachClosingOriginListeners = useCallback(() => {
+    if (closingOriginDetachRef.current) {
+      scheduleClosingViewerOriginRefresh();
+      return;
+    }
+
+    const refreshOnViewportChange = () => scheduleClosingViewerOriginRefresh();
+
+    window.addEventListener("scroll", refreshOnViewportChange, { passive: true });
+    window.addEventListener("resize", refreshOnViewportChange);
+    closingOriginDetachRef.current = () => {
+      window.removeEventListener("scroll", refreshOnViewportChange);
+      window.removeEventListener("resize", refreshOnViewportChange);
+    };
+
+    scheduleClosingViewerOriginRefresh();
+  }, [scheduleClosingViewerOriginRefresh]);
 
   useEffect(() => {
     if (actionButtonScaleFrameRef.current) {
@@ -1450,6 +1512,7 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       window.clearTimeout(revealTimerRef.current);
       revealTimerRef.current = null;
     }
+    detachClosingOriginListeners();
     setViewerClosing(false);
 
     await preloadImage(item.link);
@@ -1497,6 +1560,7 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
 
     setViewerClosing(true);
     setViewerExpanded(false);
+    attachClosingOriginListeners();
 
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current);
@@ -1512,58 +1576,22 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
 
     closeTimerRef.current = window.setTimeout(() => {
       sketchRef.current?.setHiddenInstanceIndex(null);
+      detachClosingOriginListeners();
       setViewer(null);
       setViewerClosing(false);
       closeTimerRef.current = null;
     }, lightboxUnmountDelayMs);
-  }, [getCurrentViewerOrigin, viewerClosing]);
+  }, [attachClosingOriginListeners, detachClosingOriginListeners, getCurrentViewerOrigin, viewerClosing]);
 
   useEffect(() => {
     if (!viewerClosing) {
+      detachClosingOriginListeners();
       return undefined;
     }
 
-    let frame = 0;
-
-    const refreshClosingOrigin = () => {
-      if (frame) {
-        return;
-      }
-
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const latestOrigin = getCurrentViewerOrigin();
-
-        if (!latestOrigin) {
-          return;
-        }
-
-        setViewer((currentViewer) =>
-          currentViewer
-            ? {
-                ...currentViewer,
-                originSource: latestOrigin.originSource,
-                hiddenInstanceIndex: latestOrigin.hiddenInstanceIndex,
-                origin: latestOrigin.origin,
-              }
-            : currentViewer
-        );
-      });
-    };
-
-    refreshClosingOrigin();
-    window.addEventListener("scroll", refreshClosingOrigin, { passive: true });
-    window.addEventListener("resize", refreshClosingOrigin);
-
-    return () => {
-      if (frame) {
-        window.cancelAnimationFrame(frame);
-      }
-
-      window.removeEventListener("scroll", refreshClosingOrigin);
-      window.removeEventListener("resize", refreshClosingOrigin);
-    };
-  }, [getCurrentViewerOrigin, viewerClosing]);
+    attachClosingOriginListeners();
+    return () => detachClosingOriginListeners();
+  }, [attachClosingOriginListeners, detachClosingOriginListeners, viewerClosing]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

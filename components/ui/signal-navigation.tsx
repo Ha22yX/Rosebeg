@@ -6,7 +6,8 @@ import { Shuffle } from "@/components/ui/shuffle";
 const menuItems = [
   { label: "HOME", ariaLabel: "Home", link: "#hero" },
   { label: "ABOUT", ariaLabel: "About", link: "#who" },
-  { label: "PHOTOS", ariaLabel: "Photos", link: "#works" },
+  { label: "WORKS", ariaLabel: "Works", link: "#works" },
+  { label: "PHOTOS", ariaLabel: "Photos", link: "#photos" },
   { label: "SOCIAL", ariaLabel: "Social", link: "#social" },
   { label: "CONTACT", ariaLabel: "Contact", link: "#contact" },
 ];

@@ -245,7 +245,16 @@ function App() {
           </div>
         </section>
 
-          <section id="works" className="section-panel photography-panel" aria-label="Photography">
+          <section id="works" className="section-panel code-works-panel" aria-label="Selected code works">
+            <iframe
+              className="code-works-frame"
+              title="Selected Code Works"
+              src="/project-card-swap/index.html"
+              loading="lazy"
+            />
+          </section>
+
+          <section id="photos" className="section-panel photography-panel" aria-label="Photography">
             <InfiniteMenu items={photographyItems} scale={1} />
           </section>
 

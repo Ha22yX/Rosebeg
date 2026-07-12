@@ -701,6 +701,23 @@ a {
   line-height: 1;
 }
 
+.code-works-panel {
+  width: 100vw;
+  max-width: none;
+  min-height: 100dvh;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-block: 0;
+}
+
+.code-works-frame {
+  width: 100%;
+  height: clamp(760px, 100dvh, 1040px);
+  display: block;
+  border: 0;
+  background: transparent;
+}
+
 .photography-panel {
   width: 100vw;
   max-width: none;
@@ -1226,6 +1243,17 @@ a {
     padding-block: 92px;
   }
 
+  .code-works-panel {
+    width: 100vw;
+    min-height: 760px;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+
+  .code-works-frame {
+    height: 760px;
+  }
+
   .infinite-menu {
     height: 560px;
   }
@@ -1283,6 +1311,14 @@ a {
   .photography-panel {
     min-height: 580px;
     padding-block: 78px;
+  }
+
+  .code-works-panel {
+    min-height: 700px;
+  }
+
+  .code-works-frame {
+    height: 700px;
   }
 
   .infinite-menu {

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rosebeg Explorer Project CardSwap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=block"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <main
+    class="project-card-swap-section"
+    data-project-card-swap-section
+    aria-label="Open source programming projects"
+  >
+    <section class="portfolio-copy" aria-label="Programming portfolio introduction">
+      <div class="portfolio-kicker">Portfolio</div>
+      <div
+        class="text-pressure-shell"
+        data-text-pressure
+        data-text="Selected Code Works"
+        data-flex="true"
+        data-alpha="false"
+        data-stroke="true"
+        data-width="true"
+        data-weight="true"
+        data-italic="false"
+        data-text-color="#ffffff"
+        data-stroke-color="rgba(147, 243, 255, 0.58)"
+        data-min-font-size="36"
+      ></div>
+      <p class="portfolio-note">More work lives in my GitHub repositories.</p>
+    </section>
+    <div
+      class="card-swap-container"
+      data-card-swap
+      data-width="940"
+      data-height="600"
+      data-card-distance="44"
+      data-vertical-distance="32"
+      data-delay="3600"
+      data-pause-on-hover="false"
+      data-skew-amount="2"
+      data-easing="elastic"
+    ></div>
+    <div class="scroll-hint" data-scroll-hint aria-hidden="true">
+      <span class="scroll-hint-mark">
+        <span class="scroll-hint-wheel"></span>
+      </span>
+      <span>Scroll projects</span>
+    </div>
+  </main>
+</body>
+</html>
