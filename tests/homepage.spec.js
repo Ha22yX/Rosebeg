@@ -16,7 +16,7 @@ test("types the manifesto in the requested sequence with yellow roles", async ({
 
   await expect(title).toContainText("This is Rosebeg", { timeout: 4000 });
   await expect(title).not.toContainText("This is Rosebeg.");
-  await expect(title).toContainText("A personal portfolio", { timeout: 7000 });
+  await expect(title).toContainText("A personal portfolio", { timeout: 5000 });
   await expect(title).toContainText("A personal portfolio by HarryX", { timeout: 4000 });
 
   await expect(title).toContainText("I am a Developer", { timeout: 7000 });
@@ -35,6 +35,35 @@ test("anchors the first sentence while typing spaces instead of re-centering eve
   await page.goto("/");
   await expect(page.locator("[data-typewriter-title]")).toContainText("This is ", { timeout: 3000 });
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
+});
+
+test("does not overhold the opening Rosebeg sentence", async ({ page }) => {
+  await page.goto("/");
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const title = document.querySelector("[data-typewriter-title]");
+          return title?.textContent?.startsWith("This is Rosebeg") ?? false;
+        }),
+      { timeout: 4000, intervals: [50] }
+    )
+    .toBe(true);
+
+  const openedAt = await page.evaluate(() => performance.now());
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate((startTime) => {
+          const title = document.querySelector("[data-typewriter-title]");
+          const text = title?.textContent ?? "";
+          return text.startsWith("This is Rosebeg") ? Number.POSITIVE_INFINITY : performance.now() - startTime;
+        }, openedAt),
+      { timeout: 3200, intervals: [50] }
+    )
+    .toBeLessThan(2300);
 });
 
 test("anchors the shared I am a prefix before the yellow role appears", async ({ page }) => {
