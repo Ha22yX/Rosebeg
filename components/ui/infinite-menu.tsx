@@ -186,6 +186,14 @@ function getViewerStyle(viewer: ViewerState) {
   } as CSSProperties;
 }
 
+function getRandomInitialItemIndex(itemCount: number) {
+  if (itemCount <= 1) {
+    return 0;
+  }
+
+  return Math.min(itemCount - 1, Math.floor(Math.random() * itemCount));
+}
+
 function drawImageCover(
   context: CanvasRenderingContext2D,
   image: HTMLImageElement,
@@ -786,7 +794,8 @@ class InfiniteGridMenu {
     private readonly items: InfiniteMenuItem[],
     private readonly onActiveItemChange: (index: number) => void,
     private readonly onMovementChange: (isMoving: boolean) => void,
-    private readonly scaleFactor = 1.0
+    private readonly scaleFactor = 1.0,
+    private readonly initialItemIndex = 0
   ) {
     this.camera.position[2] = 3 * scaleFactor;
 
@@ -841,6 +850,7 @@ class InfiniteGridMenu {
     this.texture = createAndSetupTexture(gl);
     this.initTexture();
     this.control = new ArcballControl(this.canvas, (deltaTime) => this.onControlUpdate(deltaTime));
+    this.setInitialActiveItem(initialItemIndex);
 
     this.updateCameraMatrix();
     this.updateProjectionMatrix();
@@ -953,6 +963,19 @@ class InfiniteGridMenu {
       width: size,
       height: size,
     };
+  }
+
+  private setInitialActiveItem(itemIndex: number) {
+    const itemCount = Math.max(1, this.items.length);
+    const safeItemIndex = Math.max(0, Math.min(itemCount - 1, itemIndex));
+    const instanceIndex = Math.min(this.instancePositions.length - 1, safeItemIndex);
+    const localDirection = vec3.normalize(vec3.create(), this.instancePositions[instanceIndex]);
+
+    this.nearestVertexIndex = instanceIndex;
+    quat.rotationTo(this.control.orientation, localDirection, this.control.snapDirection);
+    quat.normalize(this.control.orientation, this.control.orientation);
+    this.control.snapTargetDirection = vec3.normalize(vec3.create(), this.getVertexWorldPosition(instanceIndex));
+    this.onActiveItemChange(safeItemIndex);
   }
 
   resize() {
@@ -1284,6 +1307,11 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
   const actionButtonScaleValueRef = useRef(-300);
   const [actionButtonDistortionScale, setActionButtonDistortionScale] = useState(-300);
   const sourceItems = items.length ? items : defaultItems;
+  const initialItemIndexRef = useRef<number | null>(null);
+  if (initialItemIndexRef.current === null || initialItemIndexRef.current >= sourceItems.length) {
+    initialItemIndexRef.current = getRandomInitialItemIndex(sourceItems.length);
+  }
+  const initialItemIndex = initialItemIndexRef.current;
   const actionButtonTargetDistortionScale = actionButtonState === "idle" ? -300 : 300;
 
   useEffect(() => {
@@ -1339,7 +1367,8 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       sourceItems,
       (index) => setActiveItem(sourceItems[index % sourceItems.length]),
       setIsMoving,
-      scale
+      scale,
+      initialItemIndex
     );
     sketchRef.current = sketch;
 
@@ -1352,7 +1381,7 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
       sketch.dispose();
       sketchRef.current = null;
     };
-  }, [sourceItems, scale]);
+  }, [sourceItems, scale, initialItemIndex]);
 
   useEffect(() => {
     sourceItems.forEach((item) => {
@@ -1505,6 +1534,7 @@ export function InfiniteMenu({ items = [], scale = 1.0 }: InfiniteMenuProps) {
     <div
       className="infinite-menu"
       data-infinite-menu
+      data-initial-index={initialItemIndex}
       data-moving={isMoving ? "true" : "false"}
       data-viewer-lock={isViewerLockingCanvas ? "true" : "false"}
     >

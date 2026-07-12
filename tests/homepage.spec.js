@@ -425,6 +425,19 @@ test("widens the photography stage without scaling the focused content", async (
   expect(descriptionBox.x).toBeLessThan(box.width - 420);
 });
 
+test("starts the photography menu from a randomized image", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0.99;
+  });
+
+  await page.goto("/");
+  const menu = page.locator("[data-infinite-menu]");
+  const title = page.locator(".face-title.active");
+
+  await expect(menu).toHaveAttribute("data-initial-index", "5");
+  await expect(title).toHaveText("Window Afterimage");
+});
+
 test("turns the photography menu as a sphere while dragging and restores on release", async ({ page }) => {
   await page.goto("/");
   const menu = page.locator("[data-infinite-menu]");
