@@ -55,6 +55,29 @@ test("embeds the selected code works card swap section without its standalone ba
   await expect(frame.locator(".source-button").first()).toBeVisible();
 });
 
+test("links the SAT AI Tutor card to its live demo", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+
+  const satLinkConfig = await frame.locator("[data-card-swap]").evaluate(() => {
+    const satProject = window.rosebegExplorerCards?.projects?.find((project) => project.name === "SAT AI Tutor");
+    return {
+      websiteUrl: satProject?.websiteUrl ?? "",
+      websiteLabel: satProject?.websiteLabel ?? "",
+      demoFileHref: satProject?.files?.find((file) => file.name === "demo.view")?.href ?? ""
+    };
+  });
+
+  expect(satLinkConfig).toEqual({
+    websiteUrl: "https://sat.rosebeg.com/auth/login?demo=1",
+    websiteLabel: "Open demo site",
+    demoFileHref: "https://sat.rosebeg.com/auth/login?demo=1"
+  });
+});
+
 test("gives the selected code works stack enough vertical room to avoid a hard bottom crop", async ({ page }) => {
   await page.goto("/");
   await page.locator("#works").scrollIntoViewIfNeeded();

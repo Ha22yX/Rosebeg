@@ -171,7 +171,9 @@ const PROJECTS = [
     stack: ["Next.js", "Flask", "OpenAI", "Docker"],
     summary: "Wrong answers become guided review with explanations, mastery data, question import, and admin workflows.",
     sourceUrl: "https://github.com/Ha22yX/SAT-AI-Tutor",
+    websiteUrl: "https://sat.rosebeg.com/auth/login?demo=1",
     repoLabel: "View repository",
+    websiteLabel: "Open demo site",
     accent: "#bca7ff",
     glow: "rgba(188, 167, 255, 0.14)",
     chips: [
@@ -186,6 +188,7 @@ const PROJECTS = [
       { type: "folder", name: "sat_platform" },
       { type: "doc", label: "PDF", name: "question-bank.pdf", variant: "txt" },
       { type: "doc", label: "GHCR", name: "container.url", variant: "url" },
+      { type: "doc", label: "WEB", name: "demo.view", variant: "web", href: "https://sat.rosebeg.com/auth/login?demo=1" },
       { type: "doc", label: "URL", name: "github.url", variant: "url", href: "https://github.com/Ha22yX/SAT-AI-Tutor" }
     ]
   },
