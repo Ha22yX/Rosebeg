@@ -23,6 +23,29 @@ const initialTitleState: ManifestoTitleState = {
   targetText: "This is Rosebeg",
 };
 
+const mobileInitialTitleState: ManifestoTitleState = {
+  displayText: "This is Rosebeg",
+  targetText: "This is Rosebeg",
+};
+
+function detectMobilePerformanceMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const mobileMedia = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+  const narrowMedia = window.matchMedia("(max-width: 980px)");
+  const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const constrainedDevice =
+    (typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4) ||
+    (typeof deviceMemory === "number" && deviceMemory <= 4);
+  const lowPowerDevice = (mobileMedia.matches || narrowMedia.matches) && constrainedDevice;
+
+  return mobileMedia.matches || reducedMotionMedia.matches || connection?.saveData === true || lowPowerDevice;
+}
+
 const photographyItems: InfiniteMenuItem[] = [
   {
     image: "/assets/photography/signal-plain-thumb.jpg",
@@ -331,9 +354,11 @@ function getAsciiTitleLayers(text: string, targetText: string, compact: boolean)
 }
 
 function App() {
-  const [titleState, setTitleState] = useState<ManifestoTitleState>(initialTitleState);
+  const [titleState, setTitleState] = useState<ManifestoTitleState>(() =>
+    detectMobilePerformanceMode() ? mobileInitialTitleState : initialTitleState
+  );
   const [isCompact, setIsCompact] = useState(false);
-  const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(false);
+  const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(() => detectMobilePerformanceMode());
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "120px", activeMargin: "80px" });
   const worksGate = useViewportGate<HTMLElement>({
@@ -359,17 +384,7 @@ function App() {
     const mobileMedia = window.matchMedia("(max-width: 720px), (pointer: coarse)");
     const narrowMedia = window.matchMedia("(max-width: 980px)");
     const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => {
-      const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-      const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-      const constrainedDevice =
-        (typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4) ||
-        (typeof deviceMemory === "number" && deviceMemory <= 4);
-      const lowPowerDevice = (mobileMedia.matches || narrowMedia.matches) && constrainedDevice;
-      setIsMobilePerformanceMode(
-        mobileMedia.matches || reducedMotionMedia.matches || connection?.saveData === true || lowPowerDevice
-      );
-    };
+    const sync = () => setIsMobilePerformanceMode(detectMobilePerformanceMode());
     sync();
     mobileMedia.addEventListener("change", sync);
     narrowMedia.addEventListener("change", sync);
@@ -396,9 +411,11 @@ function App() {
                 aria-label="Rosebeg digital manifesto"
                 className="manifesto-title ascii-manifesto-title"
               >
-                <span className="typewriter-title-source" data-typewriter-title>
-                  <ManifestoTypewriter onTitleStateChange={setTitleState} />
-                </span>
+                {!isMobilePerformanceMode ? (
+                  <span className="typewriter-title-source" data-typewriter-title>
+                    <ManifestoTypewriter onTitleStateChange={setTitleState} />
+                  </span>
+                ) : null}
                 {isMobilePerformanceMode ? (
                   <span className="mobile-plain-title" data-mobile-plain-title aria-hidden="true">
                     {titleState.displayText}

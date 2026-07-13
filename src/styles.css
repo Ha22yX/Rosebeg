@@ -59,7 +59,11 @@ a {
   width: calc(100vw + var(--navigation-panel-width));
   height: 100dvh;
   overflow: hidden;
-  background: var(--void);
+  background:
+    radial-gradient(ellipse 95% 70% at 18% 16%, rgb(4 3 19 / 0.94) 0%, rgb(3 3 9 / 0.86) 33%, transparent 64%),
+    radial-gradient(ellipse 86% 56% at 78% 6%, rgb(169 118 219 / 0.88) 0%, rgb(75 45 157 / 0.72) 34%, transparent 68%),
+    radial-gradient(ellipse 70% 64% at 78% 82%, rgb(84 54 194 / 0.72) 0%, rgb(9 12 71 / 0.64) 48%, transparent 76%),
+    linear-gradient(135deg, #02020d 0%, #060831 36%, #4f31a2 67%, #9e73c9 100%);
   transform: translate3d(0, 0, 0);
   transition: transform var(--background-motion-duration) cubic-bezier(0.25, 0.1, 0.25, 1);
   will-change: transform;
