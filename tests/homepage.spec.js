@@ -53,6 +53,15 @@ test("uses a static shader fallback on mobile and weak-device mode", async ({ pa
   await expect(background.locator("canvas")).toHaveCount(0);
 });
 
+test("uses a plain hero title on mobile instead of the ASCII renderer", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.locator("[data-mobile-plain-title]")).toBeVisible();
+  await expect(page.locator("[data-ascii-title]")).toHaveCount(0);
+  await expect(page.locator("[data-ascii-canvas]")).toHaveCount(0);
+});
+
 test("uses a lightweight works list on mobile instead of the animated card iframe", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

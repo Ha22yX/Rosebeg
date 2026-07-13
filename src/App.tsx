@@ -399,40 +399,46 @@ function App() {
                 <span className="typewriter-title-source" data-typewriter-title>
                   <ManifestoTypewriter onTitleStateChange={setTitleState} />
                 </span>
-                <span className="ascii-title-layer" data-ascii-title aria-hidden="true">
-                  <span className="ascii-title-base">
-                    <ASCIIText
-                      key={`base-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
-                      text={asciiTitle.baseText}
-                      layoutText={asciiRender.layoutText}
-                      anchorText={asciiTitle.baseAnchorText}
-                      asciiFontSize={asciiRender.asciiFontSize}
-                      textFontSize={160}
-                      textColor="#fdf9f3"
-                      planeBaseHeight={asciiRender.planeBaseHeight}
-                      alignMode={asciiTitle.baseAlignMode}
-                      resizeMode="debounced"
-                      enableWaves={!isMobilePerformanceMode}
-                      active={heroGate.isNear}
-                    />
+                {isMobilePerformanceMode ? (
+                  <span className="mobile-plain-title" data-mobile-plain-title aria-hidden="true">
+                    {titleState.displayText}
                   </span>
-                  <span className="ascii-title-accent" data-ascii-accent>
-                    <ASCIIText
-                      key={`accent-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
-                      text={asciiTitle.accentText || " "}
-                      layoutText={asciiRender.layoutText}
-                      anchorText={asciiTitle.accentAnchorText}
-                      asciiFontSize={asciiRender.asciiFontSize}
-                      textFontSize={160}
-                      textColor="#ffd866"
-                      planeBaseHeight={asciiRender.planeBaseHeight}
-                      alignMode="layout"
-                      resizeMode="debounced"
-                      enableWaves={!isMobilePerformanceMode}
-                      active={heroGate.isNear}
-                    />
+                ) : (
+                  <span className="ascii-title-layer" data-ascii-title aria-hidden="true">
+                    <span className="ascii-title-base">
+                      <ASCIIText
+                        key={`base-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
+                        text={asciiTitle.baseText}
+                        layoutText={asciiRender.layoutText}
+                        anchorText={asciiTitle.baseAnchorText}
+                        asciiFontSize={asciiRender.asciiFontSize}
+                        textFontSize={160}
+                        textColor="#fdf9f3"
+                        planeBaseHeight={asciiRender.planeBaseHeight}
+                        alignMode={asciiTitle.baseAlignMode}
+                        resizeMode="debounced"
+                        enableWaves
+                        active={heroGate.isNear}
+                      />
+                    </span>
+                    <span className="ascii-title-accent" data-ascii-accent>
+                      <ASCIIText
+                        key={`accent-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
+                        text={asciiTitle.accentText || " "}
+                        layoutText={asciiRender.layoutText}
+                        anchorText={asciiTitle.accentAnchorText}
+                        asciiFontSize={asciiRender.asciiFontSize}
+                        textFontSize={160}
+                        textColor="#ffd866"
+                        planeBaseHeight={asciiRender.planeBaseHeight}
+                        alignMode="layout"
+                        resizeMode="debounced"
+                        enableWaves
+                        active={heroGate.isNear}
+                      />
+                    </span>
                   </span>
-                </span>
+                )}
               </h1>
             </div>
           </section>

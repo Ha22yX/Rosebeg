@@ -611,6 +611,51 @@ a {
     0 0 50px rgb(255 94 0 / 0.5);
 }
 
+.mobile-plain-title {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: inherit;
+  color: rgb(253 249 243 / 0.96);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: clamp(2.05rem, 10.5vw, 4.3rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: pre-wrap;
+  text-wrap: balance;
+  text-shadow:
+    0 0 2px rgb(243 238 230 / 0.82),
+    0 0 18px rgb(147 243 255 / 0.28),
+    0 0 36px rgb(255 94 0 / 0.18);
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+}
+
+.mobile-plain-title::after {
+  content: "";
+  display: inline-block;
+  width: 0.65em;
+  height: 0.08em;
+  margin-left: 0.16em;
+  vertical-align: -0.05em;
+  background: var(--cyan);
+  box-shadow:
+    0 0 12px rgb(147 243 255 / 0.72),
+    0 0 30px rgb(147 243 255 / 0.42);
+  animation: mobile-title-cursor 0.9s steps(1, end) infinite;
+}
+
+@keyframes mobile-title-cursor {
+  50% {
+    opacity: 0;
+  }
+}
+
 .cursor-mark {
   color: var(--cyan);
   text-shadow:
