@@ -93,6 +93,13 @@ test("maximizes a selected code works card from the same window node", async ({ 
   );
   await toggle.dispatchEvent("pointerover", { bubbles: true, pointerType: "mouse" });
   await expect(toggle).toHaveAttribute("data-hover-ready", "true");
+  const toggleHoverStyle = await toggle.evaluate((button) => {
+    const before = getComputedStyle(button, "::before");
+    return {
+      beforeContent: before.content
+    };
+  });
+  expect(toggleHoverStyle.beforeContent).toBe("none");
   const compactBox = await toggle.evaluate((button) => {
     const card = button.closest(".card");
     card?.setAttribute("data-test-expanded-origin", "true");
@@ -114,9 +121,23 @@ test("maximizes a selected code works card from the same window node", async ({ 
   await expect(expandedCard).toHaveCSS("position", "fixed");
   await expect(expandedCard).toHaveCSS("transform", "none");
 
-  await frame.locator("[data-project-card-swap-section]").click({ position: { x: 12, y: 12 } });
+  await expandedCard.locator("[data-project-window-toggle]").click();
+  const restoringCard = frame.locator(".card.is-restoring[data-test-expanded-origin='true']");
+  await expect(restoringCard).toBeVisible();
+  await expect(restoringCard).not.toHaveClass(/is-details-visible/, { timeout: 1 });
+  await expect(restoringCard).not.toHaveClass(/is-expanded-layout/, { timeout: 500 });
   await expect(frame.locator(".card.is-expanded")).toHaveCount(0);
   await expect(stack).toHaveAttribute("data-expanded", "false");
+  await expect(stack).toHaveClass(/is-revealing-stack/);
+  const restoredOriginOpacity = await frame.locator(".card[data-test-expanded-origin='true']").evaluate((card) =>
+    Number(getComputedStyle(card).opacity)
+  );
+  expect(restoredOriginOpacity).toBe(1);
+  const revealingMiddleOpacity = await frame.locator(".card.is-middle").first().evaluate((card) =>
+    Number(getComputedStyle(card).opacity)
+  );
+  expect(revealingMiddleOpacity).toBeLessThan(1);
+  await expect(stack).not.toHaveClass(/is-revealing-stack/, { timeout: 2300 });
   const restoredCard = frame.locator(".card[data-test-expanded-origin='true']");
   await expect(restoredCard).toBeVisible();
   const restoredFrameBox = await restoredCard.locator(".card-frame").evaluate((frameEl) =>
@@ -171,6 +192,153 @@ test("keeps the works card tilted at the start of the maximize animation", async
   expect(initialState.afterRadius).toBe(initialState.beforeRadius);
   expect(initialState.afterGrid).toBe(initialState.beforeGrid);
   await expect(frame.locator(".card.is-expanded-settled")).toHaveCSS("transform", "none", { timeout: 3000 });
+});
+
+test("reveals expanded project details after the window layout settles", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+  await frame.locator("[data-card-swap]").evaluate(() => {
+    window.rosebegExplorerCards?.cardSwap?.pause();
+  });
+
+  const sampledState = await frame.locator(".card.is-front").first().evaluate(async (card) => {
+    card.querySelector("[data-project-window-toggle]")?.click();
+    await new Promise((resolve) => {
+      if (card.classList.contains("is-expanded-settled")) {
+        resolve(undefined);
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        if (card.classList.contains("is-expanded-settled") || performance.now() - startedAt > 2000) {
+          observer.disconnect();
+          resolve(undefined);
+        }
+      });
+      const startedAt = performance.now();
+      observer.observe(card, { attributes: true, attributeFilter: ["class"] });
+      window.setTimeout(() => {
+        observer.disconnect();
+        resolve(undefined);
+      }, 2000);
+    });
+    const details = card.querySelector(".project-expanded-details");
+
+    return {
+      className: card.className,
+      detailsOpacity: details ? Number(getComputedStyle(details).opacity) : 1
+    };
+  });
+
+  expect(sampledState.className).toMatch(/is-expanded-layout/);
+  expect(sampledState.className).not.toMatch(/is-details-visible/);
+  expect(sampledState.detailsOpacity).toBeLessThan(0.2);
+
+  const expandedCard = frame.locator(".card.is-expanded").first();
+  const details = expandedCard.locator(".project-expanded-details");
+  await expect(expandedCard).toHaveClass(/is-details-visible/, { timeout: 1200 });
+  await expect(details).toHaveCSS("opacity", "1", { timeout: 2500 });
+});
+
+test("reserves the expanded works scrollbar gutter before details appear", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  await expect(frame.locator("[data-card-swap]")).toHaveAttribute("data-card-swap-ready", "true");
+  await frame.locator("[data-card-swap]").evaluate(() => {
+    window.rosebegExplorerCards?.cardSwap?.pause();
+  });
+
+  const metrics = await frame.locator(".card.is-front").first().evaluate(async (card) => {
+    card.querySelector("[data-project-window-toggle]")?.click();
+    await new Promise((resolve) => {
+      const startedAt = performance.now();
+      const check = () => {
+        if (card.classList.contains("is-expanded-settled") || performance.now() - startedAt > 1800) {
+          resolve(undefined);
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      check();
+    });
+
+    const main = card.querySelector(".main");
+    const overview = card.querySelector(".project-overview");
+    const beforeStyle = main ? getComputedStyle(main) : null;
+    const before = {
+      clientWidth: main?.clientWidth ?? 0,
+      overviewWidth: overview?.getBoundingClientRect().width ?? 0,
+      scrollbarGutter: beforeStyle?.scrollbarGutter ?? "",
+      overflowY: beforeStyle?.overflowY ?? ""
+    };
+
+    await new Promise((resolve) => {
+      const startedAt = performance.now();
+      const check = () => {
+        if (card.classList.contains("is-details-visible") || performance.now() - startedAt > 1800) {
+          resolve(undefined);
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      check();
+    });
+
+    const afterStyle = main ? getComputedStyle(main) : null;
+    return {
+      before,
+      after: {
+        clientWidth: main?.clientWidth ?? 0,
+        overviewWidth: overview?.getBoundingClientRect().width ?? 0,
+        scrollbarGutter: afterStyle?.scrollbarGutter ?? "",
+        overflowY: afterStyle?.overflowY ?? ""
+      }
+    };
+  });
+
+  expect(metrics.before.scrollbarGutter).toContain("stable");
+  expect(metrics.after.scrollbarGutter).toContain("stable");
+  expect(metrics.before.overflowY).toBe("scroll");
+  expect(metrics.after.overflowY).toBe("scroll");
+  expect(Math.abs(metrics.after.clientWidth - metrics.before.clientWidth)).toBeLessThan(2);
+  expect(Math.abs(metrics.after.overviewWidth - metrics.before.overviewWidth)).toBeLessThan(2);
+});
+
+test("hides the works scrollbar chrome during restore while preserving its gutter", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  const stack = frame.locator("[data-card-swap]");
+  await expect(stack).toHaveAttribute("data-card-swap-ready", "true");
+  await stack.evaluate(() => {
+    window.rosebegExplorerCards?.cardSwap?.pause();
+  });
+
+  const frontCard = frame.locator(".card.is-front").first();
+  await frontCard.locator("[data-project-window-toggle]").click();
+  const expandedCard = frame.locator(".card.is-expanded");
+  await expect(expandedCard).toHaveClass(/is-details-visible/, { timeout: 2500 });
+
+  await frame.locator("[data-project-card-swap-section]").click({ position: { x: 12, y: 12 } });
+  const restoringCard = frame.locator(".card.is-restoring").first();
+  await expect(restoringCard).toBeVisible();
+
+  const scrollbarState = await restoringCard.locator(".main").evaluate((main) => {
+    const style = getComputedStyle(main);
+    return {
+      overflowY: style.overflowY,
+      visibility: style.getPropertyValue("--works-scrollbar-visibility").trim()
+    };
+  });
+
+  expect(scrollbarState.overflowY).toBe("scroll");
+  expect(scrollbarState.visibility).toBe("hidden");
 });
 
 test("types the manifesto in the requested sequence with yellow roles", async ({ page }) => {
@@ -360,7 +528,7 @@ test("smoothly scrolls to navigation targets instead of jumping instantly", asyn
   expect(duringScroll).toBeLessThan(targetTop - 180);
 
   await expect
-    .poll(async () => page.evaluate((expectedTop) => Math.abs(window.scrollY - expectedTop), targetTop), { timeout: 1800 })
+    .poll(async () => page.evaluate((expectedTop) => Math.abs(window.scrollY - expectedTop), targetTop), { timeout: 2800 })
     .toBeLessThan(8);
   await expect(page).toHaveURL(/#photos$/);
 });

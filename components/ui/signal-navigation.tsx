@@ -75,7 +75,7 @@ export function SignalNavigation({
     }
 
     const distance = targetY - startY;
-    const duration = Math.min(1250, Math.max(780, Math.abs(distance) * 0.32));
+    const duration = Math.min(2200, Math.max(1200, Math.abs(distance) * 0.55));
     const startedAt = performance.now();
     document.documentElement.dataset.navigationScrollState = "scrolling";
 

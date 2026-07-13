@@ -1037,6 +1037,8 @@ class CardSwap {
     this.expandedCard = null;
     this.expandedSnapshot = null;
     this.expandTween = null;
+    this.detailsRevealTimer = null;
+    this.stackRevealTimer = null;
     this.isRestoringExpandedCard = false;
     this.lastPointer = { x: null, y: null };
     this.handlePointerMove = (event) => this.onPointerMove(event);
@@ -1930,8 +1932,11 @@ class CardSwap {
     };
 
     this.container.dataset.expanded = "true";
+    window.clearTimeout(this.stackRevealTimer);
+    this.container.classList.remove("is-revealing-stack");
     this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "true");
     this.cards.forEach((candidate) => candidate.classList.toggle("is-expansion-muted", candidate !== card));
+    card.classList.remove("is-expanded-layout", "is-expanded-settled", "is-details-visible", "is-restoring");
     card.classList.add("is-expanded", "is-expanding");
     card.dataset.expansionTilt = "active";
     card.classList.remove("is-hovered");
@@ -1951,6 +1956,7 @@ class CardSwap {
     gsap.set(card, openingTransform);
 
     this.expandTween?.kill();
+    window.clearTimeout(this.detailsRevealTimer);
     this.expandTween = gsap.to(card, {
       left: targetRect.left,
       top: targetRect.top,
@@ -1969,12 +1975,22 @@ class CardSwap {
       duration: 0.7,
       ease: "power3.inOut",
       overwrite: true,
+      onUpdate: () => {
+        if (this.expandTween?.progress() > 0.72) {
+          card.classList.add("is-expanded-layout");
+        }
+      },
       onComplete: () => {
         card.classList.remove("is-expanding");
-        card.classList.add("is-expanded-settled");
+        card.classList.add("is-expanded-layout", "is-expanded-settled");
         card.dataset.expansionTilt = "settled";
         card.style.transform = "none";
         this.expandTween = null;
+        this.detailsRevealTimer = window.setTimeout(() => {
+          if (this.expandedCard === card && card.classList.contains("is-expanded-settled")) {
+            card.classList.add("is-details-visible");
+          }
+        }, 260);
       }
     });
   }
@@ -1986,12 +2002,25 @@ class CardSwap {
     const fittedCompactRect = getSkewFittedRect(snapshot.rect, snapshot.compactSkewY ?? this.skewAmount);
 
     this.isRestoringExpandedCard = true;
-    card.classList.remove("is-expanded-settled", "is-expanding");
+    this.lockProgressAnimation();
+    this.clearStackHover({ schedule: false });
+    this.lastPointer = { x: null, y: null };
+    this.currentProgress = snapshot.progress;
+    this.targetProgress = snapshot.progress;
+    this.renderProgress(this.currentProgress);
+    window.clearTimeout(this.detailsRevealTimer);
+    window.clearTimeout(this.stackRevealTimer);
+    this.container.classList.remove("is-revealing-stack");
+    card.classList.remove("is-expanded-settled", "is-expanding", "is-details-visible");
     card.classList.add("is-restoring");
     card.dataset.expansionTilt = "restoring";
     this.updateWindowToggle(card, false);
 
     this.expandTween?.kill();
+    this.expandTween = null;
+
+    card.getBoundingClientRect();
+    card.classList.remove("is-expanded-layout");
     this.expandTween = gsap.to(card, {
       left: fittedCompactRect.left,
       top: fittedCompactRect.top,
@@ -2009,11 +2038,13 @@ class CardSwap {
       skewY: snapshot.compactSkewY ?? this.skewAmount,
       scale: 1,
       duration: 0.58,
+      delay: 0.04,
       ease: "power3.inOut",
       overwrite: true,
       onComplete: () => {
-        card.classList.remove("is-expanded", "is-restoring");
-        delete card.dataset.expansionTilt;
+        this.container.classList.add("is-revealing-stack");
+        this.container.dataset.expanded = "false";
+        this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "false");
         this.cards.forEach((candidate) => candidate.classList.remove("is-expansion-muted"));
         if (snapshot.parent) {
           if (snapshot.nextSibling?.parentNode === snapshot.parent) {
@@ -2023,8 +2054,8 @@ class CardSwap {
           }
         }
         card.setAttribute("style", snapshot.style);
-        this.container.dataset.expanded = "false";
-        this.container.closest("[data-project-card-swap-section]")?.setAttribute("data-expanded", "false");
+        card.classList.remove("is-expanded", "is-restoring", "is-expanded-layout", "is-details-visible");
+        delete card.dataset.expansionTilt;
         this.expandedCard = null;
         this.expandedSnapshot = null;
         this.isRestoringExpandedCard = false;
@@ -2032,7 +2063,17 @@ class CardSwap {
         this.currentProgress = snapshot.progress;
         this.targetProgress = snapshot.progress;
         this.renderProgress(this.currentProgress);
-        this.syncHoverPauseFromPointer({ schedule: true });
+        this.stackRevealTimer = window.setTimeout(() => {
+          this.container.classList.remove("is-revealing-stack");
+          this.stackRevealTimer = null;
+          const pointerStillInsideStack = this.container.matches(":hover");
+          this.pointerOverStack = pointerStillInsideStack;
+          this.hoverPaused = pointerStillInsideStack;
+          this.container.dataset.hoverPaused = String(pointerStillInsideStack);
+          if (!pointerStillInsideStack) {
+            this.scheduleNextSwap();
+          }
+        }, 1200);
       }
     });
   }

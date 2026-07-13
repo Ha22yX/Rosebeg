@@ -583,20 +583,7 @@ button.window-button {
 }
 
 .project-window-toggle::before {
-  content: "";
-  position: absolute;
-  inset: 9px 8px;
-  border: 1px solid rgba(147, 243, 255, 0);
-  border-radius: 5px;
-  background:
-    linear-gradient(135deg, rgba(147, 243, 255, 0), rgba(255, 255, 255, 0));
-  opacity: 0;
-  transform: scale(0.86);
-  transition:
-    opacity 180ms ease,
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 180ms ease,
-    background 180ms ease;
+  content: none;
 }
 
 .project-window-toggle svg {
@@ -613,28 +600,17 @@ button.window-button {
 .project-window-toggle:focus-visible,
 .project-window-toggle[data-hover-ready="true"] {
   color: #c4fbff;
-  border-left-color: rgba(147, 243, 255, 0.1);
-  background: rgba(147, 243, 255, 0.045);
-  box-shadow: inset 0 0 18px rgba(147, 243, 255, 0.055);
+  border-left-color: rgba(147, 243, 255, 0.12);
+  background: rgba(147, 243, 255, 0.11);
+  box-shadow: inset 0 0 0 1px rgba(147, 243, 255, 0.08);
   outline: none;
-}
-
-.project-window-toggle:hover::before,
-.project-window-toggle:focus-visible::before,
-.project-window-toggle[data-hover-ready="true"]::before {
-  opacity: 1;
-  transform: scale(1);
-  border-color: rgba(147, 243, 255, 0.44);
-  background:
-    radial-gradient(circle at 35% 20%, rgba(147, 243, 255, 0.18), transparent 52%),
-    rgba(12, 22, 26, 0.38);
 }
 
 .project-window-toggle:hover svg,
 .project-window-toggle:focus-visible svg,
 .project-window-toggle[data-hover-ready="true"] svg {
   filter: drop-shadow(0 0 8px rgba(147, 243, 255, 0.5));
-  transform: translateY(-1px) scale(1.04);
+  transform: scale(1.04);
 }
 
 .toolbar {
@@ -1223,8 +1199,19 @@ button.window-button {
   filter: blur(1.5px) brightness(0.42) saturate(0.76);
   pointer-events: none;
   transition:
-    opacity 260ms ease,
-    filter 260ms ease;
+    opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-swap-container.is-revealing-stack .card {
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-swap-container.is-revealing-stack .card:not(.is-front) {
+  opacity: 0.2;
+  filter: blur(1.2px) brightness(0.5) saturate(0.8);
 }
 
 .card.is-expanded,
@@ -1254,7 +1241,16 @@ button.window-button {
   transform: none !important;
 }
 
-.card.is-expanded-settled .card-frame {
+.card.is-expanded-layout .card-frame,
+.card.is-restoring .card-frame {
+  transition:
+    border-color 280ms ease,
+    border-radius 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 220ms ease;
+}
+
+.card.is-expanded-layout .card-frame {
   border-color: rgba(147, 243, 255, 0.36);
   border-radius: 13px;
   box-shadow:
@@ -1263,9 +1259,9 @@ button.window-button {
     0 0 72px color-mix(in srgb, var(--project-accent, #93f3ff) 24%, transparent);
 }
 
-.card.is-expanded-settled .toolbar,
-.card.is-expanded-settled .content,
-.card.is-expanded-settled .statusbar,
+.card.is-expanded-layout .toolbar,
+.card.is-expanded-layout .content,
+.card.is-expanded-layout .statusbar,
 .card.is-restoring .toolbar,
 .card.is-restoring .content,
 .card.is-restoring .statusbar,
@@ -1275,50 +1271,105 @@ button.window-button {
   opacity: 1 !important;
 }
 
-.card.is-expanded-settled .tab {
+.card.is-expanded-layout .tab,
+.card.is-restoring .tab {
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-expanded-layout .tab {
   width: min(430px, 45%);
 }
 
-.card.is-expanded-settled .content {
+.card.is-expanded-layout .content,
+.card.is-restoring .content {
+  transition: grid-template-columns 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-expanded-layout .content {
   grid-template-columns: 184px 1fr;
 }
 
-.card.is-expanded-settled .main {
-  overflow: auto;
-  padding: 24px 28px 26px;
+.card.is-expanded-layout .main,
+.card.is-restoring .main {
+  --works-scrollbar-visibility: visible;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(147, 243, 255, 0.35) rgba(255, 255, 255, 0.04);
+  transition: padding 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.card.is-expanded-settled .project-overview {
+.card.is-restoring .main {
+  --works-scrollbar-visibility: hidden;
+  scrollbar-color: transparent transparent;
+}
+
+.card.is-restoring .main::-webkit-scrollbar-thumb,
+.card.is-restoring .main::-webkit-scrollbar-track,
+.card.is-restoring .main::-webkit-scrollbar-corner {
+  background: transparent;
+  border-color: transparent;
+}
+
+.card.is-expanded-layout .main {
+  padding: 24px 28px 26px;
+}
+
+.card.is-expanded-layout .project-overview,
+.card.is-restoring .project-overview {
+  transition:
+    grid-template-columns 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-expanded-layout .project-overview {
   grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
   padding: 21px 24px;
   margin-bottom: 16px;
 }
 
-.card.is-expanded-settled .folder-grid {
+.card.is-expanded-layout .folder-grid,
+.card.is-restoring .folder-grid {
+  transition:
+    grid-template-columns 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-expanded-layout .folder-grid {
   grid-template-columns: repeat(6, minmax(92px, 1fr));
   gap: 16px;
 }
 
-.card.is-expanded-settled .project-expanded-details {
+.card.is-expanded-layout .project-expanded-details,
+.card.is-restoring .project-expanded-details {
   display: grid;
+  overflow: hidden;
 }
 
-.card.is-expanded-settled .project-expanded-details {
+.card.is-expanded-layout .project-expanded-details {
+  max-height: 0;
+  transition:
+    max-height 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 360ms ease,
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-details-visible .project-expanded-details {
+  max-height: 280px;
   opacity: 1;
   transform: translateY(0);
-  transition:
-    opacity 340ms ease 80ms,
-    transform 420ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
 }
 
 .card.is-restoring .project-expanded-details {
+  max-height: 0;
   opacity: 0;
   transform: translateY(8px);
   transition:
-    opacity 160ms ease,
-    transform 160ms ease;
+    max-height 260ms cubic-bezier(0.55, 0, 1, 0.45),
+    opacity 180ms ease,
+    transform 220ms ease;
 }
 
 .card.is-expanded .window-button.close,
@@ -1328,15 +1379,15 @@ button.window-button {
 }
 
 @media (max-width: 980px) {
-  .card.is-expanded-settled .content {
+  .card.is-expanded-layout .content {
     grid-template-columns: 1fr;
   }
 
-  .card.is-expanded-settled .sidebar {
+  .card.is-expanded-layout .sidebar {
     display: none;
   }
 
-  .card.is-expanded-settled .project-overview,
+  .card.is-expanded-layout .project-overview,
   .project-expanded-details,
   .detail-list {
     grid-template-columns: 1fr;
