@@ -24,9 +24,42 @@ const initialTitleState: ManifestoTitleState = {
 };
 
 const mobileInitialTitleState: ManifestoTitleState = {
-  displayText: "This is Rosebeg",
+  displayText: "",
   targetText: "This is Rosebeg",
 };
+
+type MobileTitleStep =
+  | { action: "type"; text: string; speed?: number; targetText?: string }
+  | { action: "delete"; count: number; speed?: number; targetText?: string }
+  | { action: "wait"; duration: number; targetText?: string };
+
+const mobileTypeSpeed = 58;
+const mobileDeleteSpeed = 28;
+const mobileTitleSequence: MobileTitleStep[] = [
+  { action: "wait", duration: 120, targetText: "This is Rosebeg" },
+  { action: "type", text: "This is Rosebeg", targetText: "This is Rosebeg" },
+  { action: "wait", duration: 1200, targetText: "This is Rosebeg" },
+  { action: "delete", count: "This is Rosebeg".length, targetText: "This is Rosebeg" },
+  { action: "type", text: "A personal portfolio", targetText: "A personal portfolio by HarryX" },
+  { action: "wait", duration: 420, targetText: "A personal portfolio by HarryX" },
+  { action: "type", text: " by HarryX", targetText: "A personal portfolio by HarryX" },
+  { action: "wait", duration: 1300, targetText: "A personal portfolio by HarryX" },
+  {
+    action: "delete",
+    count: "A personal portfolio by HarryX".length,
+    targetText: "A personal portfolio by HarryX",
+  },
+  { action: "type", text: "I am a Developer", targetText: "I am a Developer" },
+  { action: "wait", duration: 980, targetText: "I am a Developer" },
+  { action: "delete", count: "Developer".length, targetText: "I am a Developer" },
+  { action: "type", text: "Researcher", targetText: "I am a Researcher" },
+  { action: "wait", duration: 980, targetText: "I am a Researcher" },
+  { action: "delete", count: "Researcher".length, targetText: "I am a Researcher" },
+  { action: "type", text: "Photographer", targetText: "I am a Photographer" },
+  { action: "wait", duration: 1150, targetText: "I am a Photographer" },
+  { action: "delete", count: "I am a Photographer".length, targetText: "I am a Photographer" },
+  { action: "type", text: "Welcome to Rosebeg", targetText: "Welcome to Rosebeg" },
+];
 
 function detectMobilePerformanceMode() {
   if (typeof window === "undefined") {
@@ -395,6 +428,75 @@ function App() {
       reducedMotionMedia.removeEventListener("change", sync);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isMobilePerformanceMode) {
+      return undefined;
+    }
+
+    const timers: number[] = [];
+    let cancelled = false;
+    let displayText = "";
+    let targetText = "This is Rosebeg";
+
+    const applyState = () => {
+      setTitleState({ displayText, targetText });
+    };
+
+    const schedule = (callback: () => void, delay: number) => {
+      const timer = window.setTimeout(callback, delay);
+      timers.push(timer);
+    };
+
+    const runStep = (stepIndex: number) => {
+      if (cancelled || stepIndex >= mobileTitleSequence.length) {
+        return;
+      }
+
+      const step = mobileTitleSequence[stepIndex];
+      targetText = step.targetText ?? targetText;
+
+      if (step.action === "wait") {
+        applyState();
+        schedule(() => runStep(stepIndex + 1), step.duration);
+        return;
+      }
+
+      const speed = step.speed ?? (step.action === "type" ? mobileTypeSpeed : mobileDeleteSpeed);
+      const total = step.action === "type" ? step.text.length : step.count;
+      let index = 0;
+
+      const tick = () => {
+        if (cancelled) {
+          return;
+        }
+
+        index += 1;
+        if (step.action === "type") {
+          displayText += step.text[index - 1] ?? "";
+        } else {
+          displayText = displayText.slice(0, -1);
+        }
+        applyState();
+
+        if (index < total) {
+          schedule(tick, speed);
+        } else {
+          schedule(() => runStep(stepIndex + 1), speed);
+        }
+      };
+
+      schedule(tick, speed);
+    };
+
+    setTitleState(mobileInitialTitleState);
+    schedule(() => runStep(0), 0);
+
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [isMobilePerformanceMode]);
 
   return (
     <>
