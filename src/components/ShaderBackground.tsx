@@ -275,6 +275,10 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (performanceMode === "mobile") {
+      return undefined;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
@@ -419,8 +423,8 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     const start = performance.now();
     let lastNow: number | null = null;
 
-    const maxPixelRatio = performanceMode === "mobile" ? 1 : 1.5;
-    const targetFrameMs = performanceMode === "mobile" ? 33 : 0;
+    const maxPixelRatio = 1.5;
+    const targetFrameMs = 0;
     let lastDrawNow = 0;
 
     const render = (now: number) => {
@@ -489,9 +493,14 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     <div
       className={["shader-background", className].filter(Boolean).join(" ")}
       data-shader-background
+      data-shader-mode={performanceMode === "mobile" ? "static" : "webgl"}
       aria-hidden="true"
     >
-      <canvas ref={canvasRef} className="shader-canvas" />
+      {performanceMode === "mobile" ? (
+        <div className="shader-static" data-static-shader-background />
+      ) : (
+        <canvas ref={canvasRef} className="shader-canvas" />
+      )}
     </div>
   );
 }

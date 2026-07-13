@@ -42,6 +42,32 @@ test("uses a lightweight photography gallery on mobile instead of WebGL", async 
   await expect(page.locator("#infinite-grid-menu-canvas")).toHaveCount(0);
 });
 
+test("uses a static shader fallback on mobile and weak-device mode", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const background = page.locator("[data-shader-background]");
+  await expect(background).toBeVisible();
+  await expect(background).toHaveAttribute("data-shader-mode", "static");
+  await expect(background.locator("[data-static-shader-background]")).toBeVisible();
+  await expect(background.locator("canvas")).toHaveCount(0);
+});
+
+test("uses a lightweight works list on mobile instead of the animated card iframe", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+
+  await expect(page.locator("iframe[title='Selected Code Works']")).toHaveCount(0);
+  await expect(page.locator("[data-mobile-code-works]")).toBeVisible();
+  await expect(page.locator("[data-mobile-code-work-card]")).toHaveCount(7);
+  await expect(page.getByRole("heading", { name: "Selected Code Works" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /SAT AI Tutor/i })).toHaveAttribute(
+    "href",
+    "https://sat.rosebeg.com/auth/login?demo=1"
+  );
+});
+
 test("embeds the selected code works card swap section without its standalone background", async ({ page }) => {
   await page.goto("/");
   await page.locator("#works").scrollIntoViewIfNeeded();

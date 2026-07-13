@@ -75,6 +75,63 @@ const socials = [
   ["Email", "mailto:hello@rosebeg.com"],
 ];
 
+type CodeWorkItem = {
+  name: string;
+  kicker: string;
+  summary: string;
+  sourceUrl: string;
+  websiteUrl?: string;
+};
+
+const codeWorks: CodeWorkItem[] = [
+  {
+    name: "Auto Email System",
+    kicker: "Self-hosted AI Console",
+    summary: "AI email triage for IMAP/POP3 inboxes, Chinese summaries, attachments, and WeChat alerts.",
+    sourceUrl: "https://github.com/Ha22yX/auto-email-system",
+  },
+  {
+    name: "Bridge US V2",
+    kicker: "International Student Platform",
+    summary: "Community platform with posts, multilingual workflows, moderation, and AI Q&A.",
+    sourceUrl: "https://github.com/Ha22yX/Bridge-US-V2",
+    websiteUrl: "https://bridge-us.org/",
+  },
+  {
+    name: "Mother-Ship Docking Drone System",
+    kicker: "Dual UAV Research",
+    summary: "Relative-localization workspace for autonomous docking with UWB, AprilTag, PX4, and MAVLink.",
+    sourceUrl: "https://github.com/Ha22yX/Mother-Ship-Docking-Drone-System",
+    websiteUrl: "https://isef.rosebeg.com/",
+  },
+  {
+    name: "Surfboard Vacuum Table DXF Generator",
+    kicker: "CAD Automation Tool",
+    summary: "Local DXF generator for surfboard vacuum-table suction holes and capsule slots.",
+    sourceUrl: "https://github.com/Ha22yX/dxf-auto-shape-tool",
+  },
+  {
+    name: "ESP32 Sound Radar",
+    kicker: "Embedded Signal Prototype",
+    summary: "ESP32-S3 four-microphone sound radar with TDOA estimation, TFT display, and web tuning dashboard.",
+    sourceUrl: "https://github.com/Ha22yX/ESP32-Sound-Radar",
+  },
+  {
+    name: "SAT AI Tutor",
+    kicker: "Adaptive Learning Platform",
+    summary: "SAT practice platform with adaptive study plans, AI explanations, PDF import, analytics, and admin tools.",
+    sourceUrl: "https://github.com/Ha22yX/SAT-AI-Tutor",
+    websiteUrl: "https://sat.rosebeg.com/auth/login?demo=1",
+  },
+  {
+    name: "PhotoBack",
+    kicker: "Photography Delivery Desk",
+    summary: "Event gallery platform for private links, client selections, delivery, and Google Drive backup.",
+    sourceUrl: "https://github.com/Ha22yX/PhotoBack",
+    websiteUrl: "https://photoback.rosebeg.com/view/8b6ab9d9",
+  },
+];
+
 function useViewportGate<T extends HTMLElement>({
   preloadMargin = "720px",
   activeMargin = "0px",
@@ -141,6 +198,38 @@ function MobilePhotoGallery({ items }: { items: InfiniteMenuItem[] }) {
       <div className="mobile-photo-strip" aria-label="Photography thumbnails">
         {supporting.map((item) => (
           <img src={item.image} alt={item.title} loading="lazy" decoding="async" key={item.title} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileCodeWorks({ items }: { items: CodeWorkItem[] }) {
+  return (
+    <div className="mobile-code-works" data-mobile-code-works>
+      <div className="mobile-code-works-header">
+        <span>Portfolio</span>
+        <h2>Selected Code Works</h2>
+        <p>Lightweight project index for mobile and low-power devices.</p>
+      </div>
+      <div className="mobile-code-works-list">
+        {items.map((item, index) => (
+          <article className="mobile-code-work-card" data-mobile-code-work-card key={item.name}>
+            <div>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{item.kicker}</strong>
+            </div>
+            <h3>{item.name}</h3>
+            <p>{item.summary}</p>
+            <nav aria-label={`${item.name} links`}>
+              <a href={item.websiteUrl ?? item.sourceUrl} target="_blank" rel="noreferrer">
+                {item.name}
+              </a>
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                GitHub
+              </a>
+            </nav>
+          </article>
         ))}
       </div>
     </div>
@@ -267,11 +356,29 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 720px), (pointer: coarse)");
-    const sync = () => setIsMobilePerformanceMode(media.matches);
+    const mobileMedia = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+    const narrowMedia = window.matchMedia("(max-width: 980px)");
+    const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => {
+      const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+      const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+      const constrainedDevice =
+        (typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4) ||
+        (typeof deviceMemory === "number" && deviceMemory <= 4);
+      const lowPowerDevice = (mobileMedia.matches || narrowMedia.matches) && constrainedDevice;
+      setIsMobilePerformanceMode(
+        mobileMedia.matches || reducedMotionMedia.matches || connection?.saveData === true || lowPowerDevice
+      );
+    };
     sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
+    mobileMedia.addEventListener("change", sync);
+    narrowMedia.addEventListener("change", sync);
+    reducedMotionMedia.addEventListener("change", sync);
+    return () => {
+      mobileMedia.removeEventListener("change", sync);
+      narrowMedia.removeEventListener("change", sync);
+      reducedMotionMedia.removeEventListener("change", sync);
+    };
   }, []);
 
   return (
@@ -350,7 +457,9 @@ function App() {
             aria-label="Selected code works"
             ref={worksGate.ref}
           >
-            {worksGate.isNear ? (
+            {isMobilePerformanceMode ? (
+              <MobileCodeWorks items={codeWorks} />
+            ) : worksGate.isNear ? (
               <iframe
                 className="code-works-frame"
                 title="Selected Code Works"

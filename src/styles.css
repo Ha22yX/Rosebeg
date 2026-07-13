@@ -75,6 +75,41 @@ a {
   height: 100%;
 }
 
+.shader-static {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 95% 70% at 18% 16%, rgb(4 3 19 / 0.94) 0%, rgb(3 3 9 / 0.86) 33%, transparent 64%),
+    radial-gradient(ellipse 86% 56% at 78% 6%, rgb(169 118 219 / 0.94) 0%, rgb(75 45 157 / 0.76) 34%, transparent 68%),
+    radial-gradient(ellipse 70% 64% at 78% 82%, rgb(84 54 194 / 0.78) 0%, rgb(9 12 71 / 0.64) 48%, transparent 76%),
+    linear-gradient(135deg, #02020d 0%, #060831 36%, #4f31a2 67%, #9e73c9 100%);
+}
+
+.shader-static::before,
+.shader-static::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+}
+
+.shader-static::before {
+  background:
+    linear-gradient(118deg, transparent 0 21%, rgb(2 3 18 / 0.86) 34%, transparent 52%),
+    linear-gradient(154deg, transparent 0 46%, rgb(221 180 255 / 0.22) 58%, transparent 72%);
+  filter: blur(18px);
+  opacity: 0.88;
+}
+
+.shader-static::after {
+  background-image:
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.08) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.035), transparent 42%, rgb(0 0 0 / 0.1));
+  background-size: 3px 3px, 100% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.24;
+}
+
 .page-stage {
   position: relative;
   min-height: 100dvh;
@@ -810,6 +845,121 @@ a {
   object-fit: cover;
   border: 1px solid rgb(243 238 230 / 0.1);
   filter: saturate(0.78) contrast(1.05) brightness(0.72);
+}
+
+.mobile-code-works {
+  display: grid;
+  width: min(100% - 32px, 720px);
+  min-height: inherit;
+  margin: 0 auto;
+  align-content: center;
+  gap: 24px;
+  padding-block: 80px;
+}
+
+.mobile-code-works-header {
+  display: grid;
+  gap: 14px;
+}
+
+.mobile-code-works-header span,
+.mobile-code-work-card strong {
+  color: rgb(147 243 255 / 0.82);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobile-code-works-header h2 {
+  max-width: 11ch;
+  margin: 0;
+  color: var(--bone);
+  font-size: clamp(3rem, 14vw, 5.6rem);
+  font-weight: 950;
+  line-height: 0.86;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 26px rgb(147 243 255 / 0.2);
+}
+
+.mobile-code-works-header p {
+  max-width: 28ch;
+  margin: 0;
+  color: rgb(243 238 230 / 0.58);
+  font-size: 0.96rem;
+}
+
+.mobile-code-works-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-code-work-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgb(243 238 230 / 0.12);
+  padding: 18px;
+  color: var(--bone);
+  background:
+    linear-gradient(135deg, rgb(147 243 255 / 0.055), transparent 46%),
+    rgb(5 6 12 / 0.38);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  backdrop-filter: blur(16px) saturate(135%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 22px 64px rgb(0 0 0 / 0.24);
+}
+
+.mobile-code-work-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mobile-code-work-card > div > span {
+  color: rgb(147 243 255 / 0.66);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.mobile-code-work-card h3 {
+  margin: 0;
+  font-size: clamp(1.52rem, 8vw, 2.55rem);
+  font-weight: 900;
+  line-height: 0.98;
+}
+
+.mobile-code-work-card p {
+  margin: 0;
+  color: rgb(243 238 230 / 0.68);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.mobile-code-work-card nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.mobile-code-work-card a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  border: 1px solid rgb(147 243 255 / 0.18);
+  padding: 0 12px;
+  color: rgb(243 238 230 / 0.86);
+  background: rgb(3 4 10 / 0.22);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .infinite-menu {
