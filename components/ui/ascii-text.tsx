@@ -38,7 +38,41 @@ void main() {
 }
 `;
 
-const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio : 1;
+const ASCII_TARGET_FRAME_MS = 1000 / 20;
+const ASCII_MIN_CELL_PX = 4;
+const ASCII_ALPHA_CUTOFF = 18;
+
+function clampChannel(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function mixChannel(a: number, b: number, amount: number) {
+  return a + (b - a) * amount;
+}
+
+function neonGradientAt(x: number, y: number, width: number, height: number) {
+  const horizontal = width > 0 ? x / width : 0;
+  const vertical = height > 0 ? y / height : 0;
+  const magentaPulse = Math.max(0, 1 - Math.abs(horizontal - 0.08) / 0.18);
+  const cyanPulse = Math.max(0, 1 - Math.abs(horizontal - 0.38) / 0.24);
+  const greenPulse = Math.max(0, 1 - Math.abs(horizontal - 0.56) / 0.2);
+  const orangePulse = Math.max(0, 1 - Math.abs(horizontal - 0.78) / 0.18);
+  const scanPulse = 0.82 + Math.sin(vertical * Math.PI * 7) * 0.18;
+
+  const r = (250 + magentaPulse * 28 + orangePulse * 55 - cyanPulse * 68) * scanPulse;
+  const g = (244 + cyanPulse * 42 + greenPulse * 52 + orangePulse * 6) * scanPulse;
+  const b = (226 + cyanPulse * 48 + magentaPulse * 34 - orangePulse * 104) * scanPulse;
+
+  return {
+    r: clampChannel(r),
+    g: clampChannel(g),
+    b: clampChannel(b),
+  };
+}
+
+function rgba(r: number, g: number, b: number, a: number) {
+  return `rgba(${clampChannel(r)}, ${clampChannel(g)}, ${clampChannel(b)}, ${Math.max(0, Math.min(1, a))})`;
+}
 
 function mapRange(n: number, start: number, stop: number, start2: number, stop2: number) {
   return ((n - start) / (stop - start)) * (stop2 - start2) + start2;
@@ -53,10 +87,10 @@ type AsciiFilterOptions = {
 
 class AsciiFilter {
   renderer: THREE.WebGLRenderer;
-  domElement: HTMLDivElement;
-  pre: HTMLPreElement;
-  canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
+  domElement: HTMLCanvasElement;
+  outputContext: CanvasRenderingContext2D;
+  sampleCanvas: HTMLCanvasElement;
+  sampleContext: CanvasRenderingContext2D;
   deg = 0;
   invert: boolean;
   fontSize: number;
@@ -66,27 +100,29 @@ class AsciiFilter {
   height = 1;
   cols = 1;
   rows = 1;
+  charWidth = 1;
+  cellHeight = 1;
   center = { x: 0, y: 0 };
   mouse = { x: 0, y: 0 };
 
   constructor(renderer: THREE.WebGLRenderer, options: AsciiFilterOptions = {}) {
     this.renderer = renderer;
-    this.domElement = document.createElement("div");
+    this.domElement = document.createElement("canvas");
+    const outputContext = this.domElement.getContext("2d", { alpha: true });
+    if (!outputContext) {
+      throw new Error("Could not create ASCII output context");
+    }
+    this.outputContext = outputContext;
+    this.sampleCanvas = document.createElement("canvas");
+    const sampleContext = this.sampleCanvas.getContext("2d", { willReadFrequently: true });
+    if (!sampleContext) {
+      throw new Error("Could not create ASCII sample context");
+    }
+    this.sampleContext = sampleContext;
     this.domElement.style.position = "absolute";
     this.domElement.style.inset = "0";
     this.domElement.style.width = "100%";
     this.domElement.style.height = "100%";
-
-    this.pre = document.createElement("pre");
-    this.domElement.appendChild(this.pre);
-
-    this.canvas = document.createElement("canvas");
-    const context = this.canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) {
-      throw new Error("Could not create ASCII canvas context");
-    }
-    this.context = context;
-    this.domElement.appendChild(this.canvas);
 
     this.invert = options.invert ?? true;
     this.fontSize = options.fontSize ?? 9;
@@ -94,8 +130,6 @@ class AsciiFilter {
     this.charset =
       options.charset ??
       " .'`^\",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-
-    this.context.imageSmoothingEnabled = false;
     this.onMouseMove = this.onMouseMove.bind(this);
     document.addEventListener("mousemove", this.onMouseMove);
   }
@@ -104,81 +138,78 @@ class AsciiFilter {
     this.width = Math.max(1, width);
     this.height = Math.max(1, height);
     this.renderer.setSize(this.width, this.height);
+    this.domElement.width = this.width;
+    this.domElement.height = this.height;
     this.reset();
     this.center = { x: this.width / 2, y: this.height / 2 };
     this.mouse = { x: this.center.x, y: this.center.y };
   }
 
   reset() {
-    this.context.font = `${this.fontSize}px ${this.fontFamily}`;
-    const charWidth = Math.max(1, this.context.measureText("A").width);
-    this.cols = Math.max(1, Math.floor(this.width / charWidth));
-    this.rows = Math.max(1, Math.floor(this.height / this.fontSize));
-
-    this.canvas.width = this.cols;
-    this.canvas.height = this.rows;
-    this.pre.style.fontFamily = this.fontFamily;
-    this.pre.style.fontSize = `${this.fontSize}px`;
-    this.pre.style.margin = "0";
-    this.pre.style.padding = "0";
-    this.pre.style.lineHeight = "1em";
-    this.pre.style.position = "absolute";
-    this.pre.style.left = "0";
-    this.pre.style.top = "0";
-    this.pre.style.zIndex = "9";
-    this.pre.style.backgroundAttachment = "fixed";
-    this.pre.style.mixBlendMode = "screen";
+    this.cellHeight = Math.max(ASCII_MIN_CELL_PX, this.fontSize);
+    this.outputContext.font = `800 ${this.cellHeight}px ${this.fontFamily}`;
+    this.outputContext.textBaseline = "top";
+    this.outputContext.textAlign = "left";
+    this.charWidth = Math.max(1, this.outputContext.measureText("A").width);
+    this.cols = Math.max(1, Math.floor(this.width / this.charWidth));
+    this.rows = Math.max(1, Math.floor(this.height / this.cellHeight));
+    this.sampleCanvas.width = this.cols;
+    this.sampleCanvas.height = this.rows;
+    this.sampleContext.imageSmoothingEnabled = false;
+    this.outputContext.imageSmoothingEnabled = false;
   }
 
   render(scene: THREE.Scene, camera: THREE.Camera) {
     this.renderer.render(scene, camera);
-
-    const w = this.canvas.width;
-    const h = this.canvas.height;
-    this.context.clearRect(0, 0, w, h);
-    if (w && h) {
-      this.context.drawImage(this.renderer.domElement, 0, 0, w, h);
-    }
-
-    this.asciify(this.context, w, h);
-    this.hue();
+    this.sampleContext.clearRect(0, 0, this.cols, this.rows);
+    this.sampleContext.drawImage(this.renderer.domElement, 0, 0, this.cols, this.rows);
+    this.asciify();
   }
 
-  onMouseMove(e: MouseEvent) {
-    this.mouse = { x: e.clientX * pixelRatio, y: e.clientY * pixelRatio };
-  }
+  asciify() {
+    const imageData = this.sampleContext.getImageData(0, 0, this.cols, this.rows).data;
+    this.outputContext.clearRect(0, 0, this.width, this.height);
+    this.outputContext.font = `800 ${this.cellHeight}px ${this.fontFamily}`;
+    this.outputContext.textBaseline = "top";
 
-  hue() {
-    const deg = (Math.atan2(this.mouse.y - this.center.y, this.mouse.x - this.center.x) * 180) / Math.PI;
-    this.deg += (deg - this.deg) * 0.075;
-    this.domElement.style.filter = `hue-rotate(${this.deg.toFixed(1)}deg)`;
-  }
+    for (let y = 0; y < this.rows; y += 1) {
+      for (let x = 0; x < this.cols; x += 1) {
+        const index = (x + y * this.cols) * 4;
+        const r = imageData[index];
+        const g = imageData[index + 1];
+        const b = imageData[index + 2];
+        const a = imageData[index + 3];
 
-  asciify(ctx: CanvasRenderingContext2D, w: number, h: number) {
-    const imgData = ctx.getImageData(0, 0, w, h).data;
-    let str = "";
-
-    for (let y = 0; y < h; y += 1) {
-      for (let x = 0; x < w; x += 1) {
-        const i = x * 4 + y * 4 * w;
-        const [r, g, b, a] = [imgData[i], imgData[i + 1], imgData[i + 2], imgData[i + 3]];
-
-        if (a === 0) {
-          str += " ";
+        if (a < ASCII_ALPHA_CUTOFF) {
           continue;
         }
 
         const gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
-        let idx = Math.floor((1 - gray) * (this.charset.length - 1));
-        if (this.invert) {
-          idx = this.charset.length - idx - 1;
-        }
-        str += this.charset[idx];
+        const mix = this.invert ? gray : 1 - gray;
+        const charIndex = Math.max(0, Math.min(this.charset.length - 1, Math.floor(mix * (this.charset.length - 1))));
+        const drawX = x * this.charWidth;
+        const drawY = y * this.cellHeight;
+        const alpha = Math.min(1, Math.max(0.5, (a / 255) * 1.18));
+        const neon = neonGradientAt(drawX, drawY, this.width, this.height);
+        const sourceLift = Math.max(r, g, b) / 255;
+        const channelAlpha = alpha * (0.55 + sourceLift * 0.28);
+        this.outputContext.fillStyle = rgba(40, 248, 255, channelAlpha * 0.72);
+        this.outputContext.fillText(this.charset[charIndex], drawX - 1.35, drawY);
+        this.outputContext.fillStyle = rgba(255, 36, 210, channelAlpha * 0.56);
+        this.outputContext.fillText(this.charset[charIndex], drawX + 1.25, drawY + 0.35);
+        this.outputContext.fillStyle = rgba(255, 226, 54, channelAlpha * 0.48);
+        this.outputContext.fillText(this.charset[charIndex], drawX + 0.25, drawY - 0.45);
+        const outR = mixChannel(neon.r, 235, 0.28);
+        const outG = mixChannel(neon.g, 250, 0.24);
+        const outB = mixChannel(neon.b, 238, 0.22);
+        this.outputContext.fillStyle = rgba(outR, outG, outB, alpha * 0.76);
+        this.outputContext.fillText(this.charset[charIndex], drawX, drawY);
       }
-      str += "\n";
     }
+  }
 
-    this.pre.textContent = str;
+  onMouseMove(e: MouseEvent) {
+    this.mouse = { x: e.clientX, y: e.clientY };
   }
 
   dispose() {
@@ -199,6 +230,7 @@ class CanvasText {
   font: string;
   alignMode: "center" | "anchored" | "layout";
   lineXPositions: number[] = [];
+  private dirty = true;
 
   constructor(
     text: string,
@@ -244,36 +276,65 @@ class CanvasText {
     this.canvas.width = textWidth;
     this.canvas.height = textHeight;
     this.lineXPositions = [];
+    this.dirty = true;
   }
 
   render() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.fillStyle = this.color;
-    this.context.font = this.font;
-    this.context.textBaseline = "top";
-
     const lines = this.text.split("\n");
     const anchorLines = this.anchorText.split("\n");
+    const nextLineXPositions: number[] = [];
+    let changed = this.dirty || this.lineXPositions.length !== lines.length;
+
+    this.context.font = this.font;
     lines.forEach((line, index) => {
       const drawLine = this.alignMode === "layout" ? line : line.trim();
-      const referenceLine =
-        this.alignMode === "center" ? drawLine : anchorLines[index] ?? drawLine;
+      const referenceLine = this.alignMode === "center" ? drawLine : anchorLines[index] ?? drawLine;
       const referenceWidth = this.context.measureText(referenceLine || " ").width;
       const targetX = Math.max(18, (this.canvas.width - referenceWidth) / 2);
       const currentX = this.lineXPositions[index] ?? targetX;
       const nextX = currentX + (targetX - currentX) * 0.18;
       const x = Math.abs(nextX - targetX) < 0.12 ? targetX : nextX;
-      this.lineXPositions[index] = x;
-      this.context.fillText(drawLine, x, 12 + index * this.lineHeight);
+      nextLineXPositions[index] = x;
+
+      if (Math.abs((this.lineXPositions[index] ?? Number.NaN) - x) > 0.01) {
+        changed = true;
+      }
     });
+
+    if (!changed) {
+      return false;
+    }
+
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillStyle = this.color;
+    this.context.font = this.font;
+    this.context.textBaseline = "top";
+
+    lines.forEach((line, index) => {
+      const drawLine = this.alignMode === "layout" ? line : line.trim();
+      this.context.fillText(drawLine, nextLineXPositions[index], 12 + index * this.lineHeight);
+    });
+    this.lineXPositions = nextLineXPositions;
+    this.dirty = false;
+    return true;
   }
 
   setText(text: string) {
+    if (this.text === text) {
+      return;
+    }
+
     this.text = text;
+    this.dirty = true;
   }
 
   setAnchorText(anchorText: string) {
+    if (this.anchorText === anchorText) {
+      return;
+    }
+
     this.anchorText = anchorText;
+    this.dirty = true;
   }
 
   get texture() {
@@ -293,6 +354,8 @@ class CanvasAscii {
   mesh?: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   animationFrameId = 0;
   isRunning = false;
+  isDisposed = false;
+  lastRenderNow = 0;
   mouse = { x: 0, y: 0 };
   center = { x: 0, y: 0 };
 
@@ -307,6 +370,7 @@ class CanvasAscii {
       planeBaseHeight: number;
       enableWaves: boolean;
       alignMode: "center" | "anchored" | "layout";
+      targetFrameMs: number;
     },
     private container: HTMLElement,
     private width: number,
@@ -328,16 +392,21 @@ class CanvasAscii {
   }
 
   async init() {
-    if ("fonts" in document) {
-      try {
-        await document.fonts.ready;
-      } catch {
-        // Continue with fallback fonts.
-      }
-    }
-
     this.setMesh();
     this.setRenderer();
+
+    if ("fonts" in document) {
+      void document.fonts.ready
+        .then(() => {
+          if (!this.isDisposed) {
+            this.refreshTextGeometry();
+            this.render(performance.now());
+          }
+        })
+        .catch(() => {
+          // Continue with fallback fonts.
+        });
+    }
   }
 
   setMesh() {
@@ -380,6 +449,7 @@ class CanvasAscii {
     });
 
     this.container.appendChild(this.filter.domElement);
+    this.container.dataset.renderTargetFrameMs = this.options.targetFrameMs.toFixed(2);
     this.setSize(this.width, this.height);
     this.container.addEventListener("mousemove", this.onMouseMove);
     this.container.addEventListener("touchmove", this.onMouseMove, { passive: true });
@@ -402,12 +472,31 @@ class CanvasAscii {
     this.center = { x: this.width / 2, y: this.height / 2 };
   }
 
-  load(active = true) {
-    if (!active) {
-      this.render();
+  refreshTextGeometry() {
+    if (!this.mesh || !this.material) {
       return;
     }
 
+    this.textCanvas.resize();
+    this.textCanvas.render();
+    this.texture.needsUpdate = true;
+
+    const textAspect = this.textCanvas.texture.width / this.textCanvas.texture.height;
+    const planeH = this.options.planeBaseHeight;
+    const planeW = planeH * textAspect;
+    const nextGeometry = new THREE.PlaneGeometry(planeW, planeH, 36, 36);
+    this.mesh.geometry.dispose();
+    this.mesh.geometry = nextGeometry;
+    this.geometry = nextGeometry;
+  }
+
+  load(active = true) {
+    if (!active) {
+      this.render(performance.now());
+      return;
+    }
+
+    this.render(performance.now());
     this.resume();
   }
 
@@ -417,15 +506,22 @@ class CanvasAscii {
     }
 
     this.isRunning = true;
-    const animateFrame = () => {
+    this.lastRenderNow = 0;
+    const animateFrame = (now: number) => {
       if (!this.isRunning) {
         return;
       }
 
+      if (this.lastRenderNow > 0 && now - this.lastRenderNow < this.options.targetFrameMs) {
+        this.animationFrameId = requestAnimationFrame(animateFrame);
+        return;
+      }
+
+      this.lastRenderNow = now;
+      this.render(now);
       this.animationFrameId = requestAnimationFrame(animateFrame);
-      this.render();
     };
-    animateFrame();
+    this.animationFrameId = requestAnimationFrame(animateFrame);
   }
 
   pause() {
@@ -451,14 +547,15 @@ class CanvasAscii {
     };
   }
 
-  render() {
+  render(now = performance.now()) {
     if (!this.mesh || !this.material || !this.filter) {
       return;
     }
 
-    const time = Date.now() * 0.001;
-    this.textCanvas.render();
-    this.texture.needsUpdate = true;
+    const time = now * 0.001;
+    if (this.textCanvas.render()) {
+      this.texture.needsUpdate = true;
+    }
     this.material.uniforms.uTime.value = Math.sin(time);
     this.updateRotation();
     this.filter.render(this.scene, this.camera);
@@ -476,6 +573,7 @@ class CanvasAscii {
   }
 
   dispose() {
+    this.isDisposed = true;
     this.pause();
     this.container.removeEventListener("mousemove", this.onMouseMove);
     this.container.removeEventListener("touchmove", this.onMouseMove);
@@ -504,6 +602,7 @@ export type ASCIITextProps = {
   alignMode?: "center" | "anchored" | "layout";
   resizeMode?: "responsive" | "debounced" | "initial";
   active?: boolean;
+  animated?: boolean;
 };
 
 export function ASCIIText({
@@ -518,6 +617,7 @@ export function ASCIIText({
   alignMode = "center",
   resizeMode = "responsive",
   active = true,
+  animated = true,
 }: ASCIITextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const asciiRef = useRef<CanvasAscii | null>(null);
@@ -528,12 +628,18 @@ export function ASCIIText({
   useEffect(() => {
     latestText.current = text;
     asciiRef.current?.setText(text);
-  }, [text]);
+    if (!animated || !active) {
+      asciiRef.current?.render(performance.now());
+    }
+  }, [active, animated, text]);
 
   useEffect(() => {
     latestAnchorText.current = anchorText;
     asciiRef.current?.setAnchorText(anchorText);
-  }, [anchorText]);
+    if (!animated || !active) {
+      asciiRef.current?.render(performance.now());
+    }
+  }, [active, animated, anchorText]);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -557,6 +663,7 @@ export function ASCIIText({
           planeBaseHeight,
           enableWaves,
           alignMode,
+          targetFrameMs: ASCII_TARGET_FRAME_MS,
         },
         container,
         width || 1,
@@ -569,8 +676,13 @@ export function ASCIIText({
         return;
       }
 
+      instance.setText(latestText.current);
+      instance.setAnchorText(latestAnchorText.current);
       asciiRef.current = instance;
-      instance.load(active);
+      instance.load(animated && active && document.visibilityState !== "hidden");
+      if (!animated || !active) {
+        instance.render(performance.now());
+      }
 
       if (resizeMode !== "initial") {
         resizeObserver = new ResizeObserver((entries) => {
@@ -581,6 +693,9 @@ export function ASCIIText({
           if (w > 0 && h > 0) {
             const applySize = () => {
               asciiRef.current?.setSize(w, h);
+              if (!animated || !active) {
+                asciiRef.current?.render(performance.now());
+              }
               resizeTimeout.current = null;
             };
 
@@ -620,15 +735,24 @@ export function ASCIIText({
     resizeMode,
     textColor,
     textFontSize,
+    animated,
   ]);
 
   useEffect(() => {
-    if (active) {
-      asciiRef.current?.resume();
-    } else {
-      asciiRef.current?.pause();
-    }
-  }, [active]);
+    const syncActivity = () => {
+      if (animated && active && document.visibilityState !== "hidden") {
+        asciiRef.current?.resume();
+      } else {
+        asciiRef.current?.pause();
+        asciiRef.current?.render(performance.now());
+      }
+    };
+
+    syncActivity();
+    document.addEventListener("visibilitychange", syncActivity);
+
+    return () => document.removeEventListener("visibilitychange", syncActivity);
+  }, [active, animated]);
 
   return (
     <div
@@ -638,6 +762,7 @@ export function ASCIIText({
       data-ascii-font-size={asciiFontSize}
       data-anchor-text={anchorText}
       data-render-active={active ? "true" : "false"}
+      data-render-animated={animated ? "true" : "false"}
       data-resize-mode={resizeMode}
       ref={containerRef}
     />

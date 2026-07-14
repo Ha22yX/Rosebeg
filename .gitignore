@@ -5,3 +5,5 @@ playwright-report/
 .vite/
 artifacts/
 vite-dev*.log
+playwright-title-check.png
+project-card-swap-explorer/

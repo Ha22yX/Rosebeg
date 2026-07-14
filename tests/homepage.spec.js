@@ -6,15 +6,75 @@ test("renders the Rosebeg identity and portfolio sections", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Who" })).toBeVisible();
   await expect(page.locator("#works")).toBeAttached();
   await expect(page.locator("#photos")).toBeAttached();
-  await expect(page.getByRole("heading", { name: "Social" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Connect" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
+});
+
+test("renders the social section as a reusable signal ports sample", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#social").scrollIntoViewIfNeeded();
+
+  const panel = page.locator("[data-signal-ports-sample]");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Connect" })).toBeVisible();
+  await expect(panel.getByText("GitHub, X, Instagram, and Email")).toBeVisible();
+
+  await expect(panel.locator("[data-hardware-drive]")).toBeVisible();
+  await expect(panel.locator(".drive-key-notch")).toHaveCount(0);
+  await expect(panel.locator("[data-drive-contact]")).toHaveCount(18);
+  await expect(panel.locator("[data-pcb-trace]")).toHaveCount(18);
+  await expect(panel.locator("[data-pcb-via]")).toHaveCount(12);
+  await expect(panel.getByText("ROSEBEG-ID")).toBeVisible();
+  await expect(panel.getByText("M.2 2280")).toBeVisible();
+  await expect(panel.locator("[data-drive-chip]")).toHaveCount(4);
+  await expect(panel.locator("[data-drive-chip].is-active")).toHaveCount(0);
+  await expect(panel.getByText("No port selected")).toBeVisible();
+  await expect(panel.locator("[data-drive-contact]").first()).toHaveCSS("background-color", "rgb(216, 165, 53)");
+  await expect(panel.locator("[data-drive-endpoint]")).toHaveCount(4);
+  const endpointVisibility = await panel.locator("[data-drive-endpoint]").evaluateAll((endpoints) =>
+    endpoints.map((endpoint) => {
+      const chip = endpoint.closest("[data-drive-chip]");
+      if (!chip) {
+        return false;
+      }
+
+      const chipRect = chip.getBoundingClientRect();
+      const endpointRect = endpoint.getBoundingClientRect();
+      return endpointRect.left >= chipRect.left && endpointRect.right <= chipRect.right;
+    })
+  );
+  expect(endpointVisibility).toEqual([true, true, true, true]);
+  const chipActionVisibility = await panel.locator("[data-drive-chip]").evaluateAll((chips) =>
+    chips.map((chip) => {
+      const action = chip.querySelector(".signal-port-action");
+      if (!action) {
+        return false;
+      }
+
+      const chipRect = chip.getBoundingClientRect();
+      const actionRect = action.getBoundingClientRect();
+      return actionRect.top >= chipRect.top && actionRect.bottom <= chipRect.bottom;
+    })
+  );
+  expect(chipActionVisibility).toEqual([true, true, true, true]);
+  await expect(panel.getByRole("link", { name: /01 GitHub/i })).toHaveAttribute(
+    "href",
+    "https://github.com/Ha22yX"
+  );
+  await expect(panel.getByRole("link", { name: /04 Email/i })).toHaveAttribute(
+    "href",
+    "mailto:hello@rosebeg.com"
+  );
+
+  await panel.getByRole("link", { name: /01 GitHub/i }).hover();
+  await expect(panel.locator("[data-drive-chip].is-active")).toHaveCount(1);
+  await expect(panel.getByText("01 GitHub active")).toBeVisible();
 });
 
 test("defers heavy offscreen renderers and preloads them near their sections", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("iframe[title='Selected Code Works']")).toHaveCount(0);
   await expect(page.locator("[data-infinite-menu]")).toHaveCount(0);
-  await expect(page.locator("[data-performance-placeholder='works']")).toBeAttached();
+  await expect(page.locator("iframe[title='Selected Code Works']")).toBeAttached();
   await expect(page.locator("[data-performance-placeholder='photos']")).toBeAttached();
 
   await page.locator("#works").scrollIntoViewIfNeeded();
@@ -30,6 +90,33 @@ test("pauses hero ASCII rendering after the hero leaves the viewport", async ({ 
 
   await page.locator("#works").scrollIntoViewIfNeeded();
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-render-active", "false");
+});
+
+test("caps expensive animated render loops to performance budgets", async ({ page }) => {
+  await page.goto("/");
+
+  const shaderCanvas = page.locator("[data-shader-background] canvas");
+  await expect(shaderCanvas).toHaveAttribute("data-shader-target-frame-ms", /[0-9.]+/);
+  expect(Number(await shaderCanvas.getAttribute("data-shader-target-frame-ms"))).toBeGreaterThanOrEqual(30);
+
+  const baseAscii = page.locator(".ascii-title-base [data-ascii-canvas]");
+  await expect(baseAscii).toHaveAttribute("data-render-target-frame-ms", /[0-9.]+/);
+  expect(Number(await baseAscii.getAttribute("data-render-target-frame-ms"))).toBeGreaterThanOrEqual(45);
+
+  await page.locator("#photos").scrollIntoViewIfNeeded();
+  const photoCanvas = page.locator("#infinite-grid-menu-canvas");
+  await expect(photoCanvas).toHaveAttribute("data-render-target-frame-ms", /[0-9.]+/);
+  expect(Number(await photoCanvas.getAttribute("data-render-target-frame-ms"))).toBeGreaterThanOrEqual(20);
+});
+
+test("keeps the embedded project title pressure loop responsive", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#works").scrollIntoViewIfNeeded();
+  const frame = page.frameLocator("iframe[title='Selected Code Works']");
+  const title = frame.locator("[data-text-pressure]");
+
+  await expect(title).toHaveAttribute("data-text-pressure-target-frame-ms", /[0-9.]+/);
+  expect(Number(await title.getAttribute("data-text-pressure-target-frame-ms"))).toBeLessThanOrEqual(17);
 });
 
 test("uses a lightweight photography gallery on mobile instead of WebGL", async ({ page }) => {
@@ -58,7 +145,11 @@ test("uses a plain hero title on mobile instead of the ASCII renderer", async ({
   await page.goto("/");
 
   await expect(page.locator("[data-mobile-plain-title]")).toBeVisible();
-  await expect(page.locator("[data-mobile-plain-title]")).toContainText("This is Rosebeg");
+  await page.waitForTimeout(240);
+  const earlyTitleText = await page.locator("[data-mobile-plain-title]").textContent();
+  expect(earlyTitleText ?? "").not.toBe("");
+  expect(earlyTitleText ?? "").not.toBe("This is Rosebeg");
+  await expect(page.locator("[data-mobile-plain-title]")).toContainText("This is Rosebeg", { timeout: 1800 });
   await expect(page.locator("[data-typewriter-title]")).toHaveCount(0);
   await expect(page.locator("[data-ascii-title]")).toHaveCount(0);
   await expect(page.locator("[data-ascii-canvas]")).toHaveCount(0);
@@ -428,6 +519,29 @@ test("anchors the first sentence while typing spaces instead of re-centering eve
   await expect(page.locator(".ascii-title-base [data-ascii-canvas]")).toHaveAttribute("data-align-mode", "anchored");
 });
 
+test("hydrates the ASCII renderer with the current first sentence after font loading", async ({ page }) => {
+  await page.goto("/");
+  const title = page.locator("[data-typewriter-title]");
+  const asciiCanvas = page.locator(".ascii-title-base [data-ascii-canvas] canvas").first();
+
+  await expect(title).toContainText("This is Rosebeg", { timeout: 4000 });
+  await expect(asciiCanvas).toBeVisible();
+  await expect(page.locator(".ascii-title-base [data-ascii-canvas] pre")).toHaveCount(0);
+});
+
+test("uses two high-performance ASCII canvas passes without DOM pre output", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.locator("[data-typewriter-title]")).toContainText("This is Rosebeg", { timeout: 4000 });
+  await expect(page.locator("[data-ascii-canvas]")).toHaveCount(2);
+  await expect(page.locator(".ascii-title-accent.is-echo [data-ascii-canvas]")).toHaveCount(1);
+  await expect(page.locator("[data-ascii-title] pre")).toHaveCount(0);
+
+  await expect(page.locator("[data-typewriter-title]")).toContainText("I am a Developer", { timeout: 16000 });
+  await expect(page.locator("[data-ascii-canvas]")).toHaveCount(2);
+  await expect(page.locator(".ascii-title-accent.is-role-accent [data-ascii-canvas]")).toHaveCount(1);
+});
+
 test("does not overhold the opening Rosebeg sentence", async ({ page }) => {
   await page.goto("/");
 
@@ -760,8 +874,9 @@ test("keeps the hero as an unframed ASCII-only title stage", async ({ page }) =>
 test("layers an ASCII text renderer over the typewriter title", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-ascii-title]")).toBeVisible();
-  await expect(page.locator(".ascii-title-base pre")).toBeVisible();
-  await expect(page.locator(".ascii-title-accent pre")).toBeVisible();
+  await expect(page.locator(".ascii-title-base canvas")).toBeVisible();
+  await expect(page.locator(".ascii-title-accent canvas")).toBeVisible();
+  await expect(page.locator("[data-ascii-title] pre")).toHaveCount(0);
   await expect(page.locator("[data-typewriter-title]")).toContainText("Welcome to Rosebeg", {
     timeout: 28000,
   });
@@ -802,8 +917,9 @@ test("exposes photography menu items and social placeholders", async ({ page }) 
     timeout: 2000,
   });
 
+  const socialLabels = page.locator("[data-signal-port] .signal-port-label");
   for (const label of ["GitHub", "X", "Instagram", "Email"]) {
-    await expect(page.getByRole("link", { name: label })).toBeVisible();
+    await expect(socialLabels.filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible();
   }
 });
 

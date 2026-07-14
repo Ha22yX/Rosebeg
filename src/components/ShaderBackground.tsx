@@ -271,6 +271,21 @@ const UNIFORMS = {
   timeScale: 0.42,
 };
 
+const SHADER_IDLE_FRAME_MS = 1000 / 60;
+const SHADER_INTERACTION_FRAME_MS = 1000 / 60;
+const SHADER_TELEMETRY_INTERVAL_MS = 120;
+const SHADER_IDLE_PIXEL_RATIO = 0.9;
+const SHADER_INTERACTION_PIXEL_RATIO = 0.55;
+const SHADER_DROP_FRAME_MS = 90;
+const SHADER_INTERACTION_HOLD_MS = 260;
+const SHADER_QUALITY_RECOVERY_MS = 4200;
+
+function getShaderPixelRatio(basePixelRatio: number, isInteracting: boolean, qualityDropUntil: number, now: number) {
+  const qualityCap = now < qualityDropUntil ? 0.62 : SHADER_IDLE_PIXEL_RATIO;
+  const interactionCap = isInteracting ? SHADER_INTERACTION_PIXEL_RATIO : SHADER_IDLE_PIXEL_RATIO;
+  return Math.min(window.devicePixelRatio || 1, basePixelRatio, qualityCap, interactionCap);
+}
+
 export function ShaderBackground({ className = "", performanceMode = "full" }: ShaderBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -404,11 +419,38 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
       targetPresence = 0;
     };
 
+    let interactionUntil = 0;
+    let interactionClearTimer: number | undefined;
+
+    const markInteraction = () => {
+      interactionUntil = performance.now() + SHADER_INTERACTION_HOLD_MS;
+      document.documentElement.dataset.backgroundInteraction = "true";
+      if (interactionClearTimer !== undefined) {
+        window.clearTimeout(interactionClearTimer);
+      }
+      interactionClearTimer = window.setTimeout(() => {
+        delete document.documentElement.dataset.backgroundInteraction;
+        interactionClearTimer = undefined;
+      }, SHADER_INTERACTION_HOLD_MS + 80);
+    };
+
     const onScroll = () => {
+      markInteraction();
       targetScrollOffset = window.scrollY * UNIFORMS.scrollParallax;
     };
 
+    const onPointerDown = () => {
+      markInteraction();
+    };
+
+    const onPointerUp = () => {
+      interactionUntil = Math.max(interactionUntil, performance.now() + 120);
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("pointerup", onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", onPointerUp, { passive: true });
 
     if (UNIFORMS.cursorEnabled) {
       window.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -422,15 +464,35 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     let raf = 0;
     const start = performance.now();
     let lastNow: number | null = null;
+    let isVisible = document.visibilityState !== "hidden";
 
-    const maxPixelRatio = 1.5;
-    const targetFrameMs = 0;
+    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const basePixelRatio = reducedMotion || coarsePointer ? SHADER_INTERACTION_PIXEL_RATIO : SHADER_IDLE_PIXEL_RATIO;
     let lastDrawNow = 0;
+    let lastTelemetryNow = Number.NEGATIVE_INFINITY;
+    let qualityDropUntil = 0;
+
+    canvas.dataset.shaderIdleFrameMs = SHADER_IDLE_FRAME_MS.toFixed(2);
+    canvas.dataset.shaderInteractionFrameMs = SHADER_INTERACTION_FRAME_MS.toFixed(2);
+    canvas.dataset.shaderMaxPixelRatio = basePixelRatio.toFixed(2);
+    canvas.dataset.performanceMode = performanceMode;
 
     const render = (now: number) => {
+      raf = 0;
+      if (!isVisible) {
+        return;
+      }
+
+      const isInteracting = now < interactionUntil;
+      const targetFrameMs = isInteracting || now < qualityDropUntil ? SHADER_INTERACTION_FRAME_MS : SHADER_IDLE_FRAME_MS;
+
       if (targetFrameMs > 0 && lastDrawNow > 0 && now - lastDrawNow < targetFrameMs) {
         raf = requestAnimationFrame(render);
         return;
+      }
+      if (lastDrawNow > 0 && now - lastDrawNow > Math.max(SHADER_DROP_FRAME_MS, targetFrameMs + 46)) {
+        qualityDropUntil = now + SHADER_QUALITY_RECOVERY_MS;
       }
       lastDrawNow = now;
 
@@ -442,7 +504,7 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
       cursorPresence += (targetPresence - cursorPresence) * follow;
       scrollOffset += (targetScrollOffset - scrollOffset) * (1 - Math.exp(-4 * dt));
 
-      const dpr = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+      const dpr = getShaderPixelRatio(basePixelRatio, isInteracting, qualityDropUntil, now);
       const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
       const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
       if (canvas.width !== w || canvas.height !== h) {
@@ -464,18 +526,47 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
       );
 
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
-      canvas.dataset.shaderTime = shaderTime.toFixed(4);
-      canvas.dataset.flowOffsetY = flowOffsetY.toFixed(4);
-      canvas.dataset.performanceMode = performanceMode;
+      if (now - lastTelemetryNow >= SHADER_TELEMETRY_INTERVAL_MS) {
+        lastTelemetryNow = now;
+        canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
+        canvas.dataset.shaderTime = shaderTime.toFixed(4);
+        canvas.dataset.flowOffsetY = flowOffsetY.toFixed(4);
+        canvas.dataset.shaderInteraction = isInteracting ? "true" : "false";
+        canvas.dataset.shaderPixelRatio = dpr.toFixed(2);
+        canvas.dataset.shaderQuality = now < qualityDropUntil ? "reduced" : "normal";
+      }
       raf = requestAnimationFrame(render);
     };
 
+    const onVisibilityChange = () => {
+      isVisible = document.visibilityState !== "hidden";
+      if (!isVisible) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        lastNow = null;
+        lastDrawNow = 0;
+        return;
+      }
+
+      if (raf === 0) {
+        raf = requestAnimationFrame(render);
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
     raf = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(raf);
+      if (interactionClearTimer !== undefined) {
+        window.clearTimeout(interactionClearTimer);
+      }
+      delete document.documentElement.dataset.backgroundInteraction;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
       if (UNIFORMS.cursorEnabled) {
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("pointercancel", onPointerLeave);

@@ -222,6 +222,7 @@ export function SignalNavigation({
                   activeKey={`${shuffleKey}-${item.label}`}
                   playDelay={index * SHUFFLE_SEQUENCE_DELAY}
                   enabled={isOpen}
+                  fixedCharacterMetrics
                 />
               </span>
               <span className="staggered-menu-number">{String(index + 1).padStart(2, "0")}</span>

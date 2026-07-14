@@ -133,6 +133,8 @@ const imageDecodeCache = new Map<string, Promise<void>>();
 const lightboxThumbnailRevealDelayMs = 120;
 const lightboxThumbnailRevealMs = 460;
 const lightboxUnmountDelayMs = 760;
+const infiniteMenuTargetFrameMs = 1000 / 45;
+const infiniteMenuMaxPixelRatio = 1.35;
 
 function preloadImage(src: string) {
   if (!imageDecodeCache.has(src)) {
@@ -554,7 +556,7 @@ function makeVertexArray(
 }
 
 function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(infiniteMenuMaxPixelRatio, window.devicePixelRatio || 1);
   const displayWidth = Math.round(canvas.clientWidth * dpr);
   const displayHeight = Math.round(canvas.clientHeight * dpr);
   const needsResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
@@ -751,11 +753,12 @@ class ArcballControl {
 }
 
 class InfiniteGridMenu {
-  private readonly targetFrameDuration = 1000 / 60;
+  private readonly targetFrameDuration = infiniteMenuTargetFrameMs;
   private readonly sphereRadius = 2;
   private time = 0;
   private frames = 0;
   private animationFrame = 0;
+  private lastDrawTime = 0;
   private isRunning = false;
   private nearestVertexIndex = 0;
   private hiddenInstanceIndex: number | null = null;
@@ -819,6 +822,8 @@ class InfiniteGridMenu {
       throw new Error("No WebGL 2 context.");
     }
     this.gl = gl;
+    this.canvas.dataset.renderTargetFrameMs = this.targetFrameDuration.toFixed(2);
+    this.canvas.dataset.renderMaxPixelRatio = infiniteMenuMaxPixelRatio.toFixed(2);
 
     const program = createProgram(gl, [discVertShaderSource, discFragShaderSource], {
       aModelPosition: 0,
@@ -900,6 +905,7 @@ class InfiniteGridMenu {
 
     this.isRunning = true;
     this.time = performance.now();
+    this.lastDrawTime = 0;
     this.animationFrame = requestAnimationFrame(this.run);
   }
 
@@ -1030,8 +1036,14 @@ class InfiniteGridMenu {
       return;
     }
 
+    if (this.lastDrawTime > 0 && time - this.lastDrawTime < this.targetFrameDuration) {
+      this.animationFrame = requestAnimationFrame(this.run);
+      return;
+    }
+
     const deltaTime = Math.min(32, time - this.time);
     this.time = time;
+    this.lastDrawTime = time;
     this.frames += deltaTime / this.targetFrameDuration;
     this.animate(deltaTime);
     this.render();
@@ -1520,11 +1532,17 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   }, [sourceItems, scale, initialItemIndex]);
 
   useEffect(() => {
-    if (active) {
-      sketchRef.current?.resume();
-    } else {
-      sketchRef.current?.pause();
-    }
+    const syncActivity = () => {
+      if (active && document.visibilityState !== "hidden") {
+        sketchRef.current?.resume();
+      } else {
+        sketchRef.current?.pause();
+      }
+    };
+
+    syncActivity();
+    document.addEventListener("visibilitychange", syncActivity);
+    return () => document.removeEventListener("visibilitychange", syncActivity);
   }, [active]);
 
   useEffect(() => {

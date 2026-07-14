@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ASCIIText } from "@/components/ui/ascii-text";
+import { ChromaGrid, type ChromaGridItem } from "@/components/ui/chroma-grid";
 import type { InfiniteMenuItem } from "@/components/ui/infinite-menu";
 import {
   ManifestoTypewriter,
@@ -7,6 +8,7 @@ import {
 } from "@/components/ui/manifesto-typewriter";
 import { SignalNavigation } from "@/components/ui/signal-navigation";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
+import { SocialSignalPorts } from "@/src/components/SocialSignalPorts";
 
 const InfiniteMenu = lazy(() =>
   import("@/components/ui/infinite-menu").then((module) => ({ default: module.InfiniteMenu }))
@@ -60,6 +62,8 @@ const mobileTitleSequence: MobileTitleStep[] = [
   { action: "delete", count: "I am a Photographer".length, targetText: "I am a Photographer" },
   { action: "type", text: "Welcome to Rosebeg", targetText: "Welcome to Rosebeg" },
 ];
+
+const contactEmail = "hello@rosebeg.com";
 
 function detectMobilePerformanceMode() {
   if (typeof window === "undefined") {
@@ -124,11 +128,43 @@ const photographyItems: InfiniteMenuItem[] = [
   },
 ];
 
-const socials = [
-  ["GitHub", "https://github.com/Ha22yX"],
-  ["X", "#"],
-  ["Instagram", "#"],
-  ["Email", "mailto:hello@rosebeg.com"],
+const chromaIdentityItems: ChromaGridItem[] = [
+  {
+    image: "/assets/identity/developer-lab.jpg",
+    title: "Developer",
+    subtitle: "Full-stack systems, AI tools, product engineering",
+    handle: "@code",
+    borderColor: "#93F3FF",
+    gradient: "linear-gradient(145deg, #164D58, #000)",
+    url: "#works",
+  },
+  {
+    image: "/assets/photography/signal-plain-thumb.jpg",
+    title: "Researcher",
+    subtitle: "Signal fields, hardware prototypes, autonomy experiments",
+    handle: "@lab",
+    borderColor: "#CFFF58",
+    gradient: "linear-gradient(210deg, #536B2D, #000)",
+    url: "#works",
+  },
+  {
+    image: "/assets/photography/night-current-thumb.jpg",
+    title: "Photographer",
+    subtitle: "Architecture, street light, quiet spatial narratives",
+    handle: "@field",
+    borderColor: "#F59E0B",
+    gradient: "linear-gradient(165deg, #6F4D18, #000)",
+    url: "#photos",
+  },
+  {
+    image: "/assets/photography/afterimage-thumb.jpg",
+    title: "Designer",
+    subtitle: "Identity systems, motion language, interface atmosphere",
+    handle: "@visual",
+    borderColor: "#8B5CF6",
+    gradient: "linear-gradient(195deg, #5227FF, #000)",
+    url: "#contact",
+  },
 ];
 
 type CodeWorkItem = {
@@ -393,6 +429,7 @@ function App() {
   const [isCompact, setIsCompact] = useState(false);
   const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(() => detectMobilePerformanceMode());
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [contactStatus, setContactStatus] = useState<"idle" | "copied">("idle");
   const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "120px", activeMargin: "80px" });
   const worksGate = useViewportGate<HTMLElement>({
     preloadMargin: isMobilePerformanceMode ? "360px" : "680px",
@@ -412,6 +449,16 @@ function App() {
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  const handleContactCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(contactEmail);
+      setContactStatus("copied");
+      window.setTimeout(() => setContactStatus("idle"), 1800);
+    } catch {
+      window.location.href = `mailto:${contactEmail}`;
+    }
+  };
 
   useEffect(() => {
     const mobileMedia = window.matchMedia("(max-width: 720px), (pointer: coarse)");
@@ -504,9 +551,27 @@ function App() {
         className={isNavigationOpen ? "is-navigation-open" : ""}
         performanceMode={isMobilePerformanceMode ? "mobile" : "full"}
       />
-      <div className={isNavigationOpen ? "page-stage is-navigation-open" : "page-stage"} data-page-stage>
+      <div
+        className={[
+          "page-stage",
+          isNavigationOpen ? "is-navigation-open" : "",
+          isMobilePerformanceMode ? "is-mobile-performance" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-page-stage
+        data-mobile-performance={isMobilePerformanceMode ? "true" : "false"}
+        data-archive-experience="signal-archive"
+      >
+        <div className="archive-field" data-archive-field aria-hidden="true" />
         <main className="site-shell">
-          <section id="hero" className="hero-panel" aria-labelledby="hero-title" ref={heroGate.ref}>
+          <section
+            id="hero"
+            className="hero-panel"
+            aria-labelledby="hero-title"
+            ref={heroGate.ref}
+            data-archive-section="hero"
+          >
             <div className="hero-stage">
               <h1
                 id="hero-title"
@@ -537,62 +602,75 @@ function App() {
                         alignMode={asciiTitle.baseAlignMode}
                         resizeMode="debounced"
                         enableWaves
-                        active={heroGate.isNear}
+                        active={heroGate.isActive}
+                        animated={heroGate.isActive}
                       />
                     </span>
-                    <span className="ascii-title-accent" data-ascii-accent>
-                      <ASCIIText
-                        key={`accent-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}`}
-                        text={asciiTitle.accentText || " "}
-                        layoutText={asciiRender.layoutText}
-                        anchorText={asciiTitle.accentAnchorText}
-                        asciiFontSize={asciiRender.asciiFontSize}
-                        textFontSize={160}
-                        textColor="#ffd866"
-                        planeBaseHeight={asciiRender.planeBaseHeight}
-                        alignMode="layout"
-                        resizeMode="debounced"
-                        enableWaves
-                        active={heroGate.isNear}
-                      />
-                    </span>
+                    {asciiTitle.accentText ? (
+                      <span className="ascii-title-accent is-role-accent" data-ascii-accent>
+                        <ASCIIText
+                          key={`accent-${isCompact ? "compact" : "wide"}-${asciiRender.layoutText}-role`}
+                          text={asciiTitle.accentText}
+                          layoutText={asciiRender.layoutText}
+                          anchorText={asciiTitle.accentAnchorText}
+                          asciiFontSize={asciiRender.asciiFontSize}
+                          textFontSize={160}
+                          textColor="#ffd866"
+                          planeBaseHeight={asciiRender.planeBaseHeight}
+                          alignMode="layout"
+                          resizeMode="debounced"
+                          enableWaves={false}
+                          active={heroGate.isActive}
+                          animated={false}
+                        />
+                      </span>
+                    ) : null}
                   </span>
                 )}
               </h1>
             </div>
           </section>
 
-        <section id="who" className="section-panel who-panel" aria-labelledby="who-title">
-          <div className="section-copy">
-            <h2 id="who-title">Who</h2>
-            <p>
-              Ha22yX designs and builds digital spaces with a focus on identity,
-              atmosphere, interaction, and visual systems.
-            </p>
-          </div>
-          <div className="identity-panel">
-            <span>Signal origin</span>
-            <strong>Designer, builder, digital identity maker.</strong>
-          </div>
-        </section>
+          <section
+            id="who"
+            className="section-panel who-panel chroma-about-panel"
+            aria-labelledby="who-title"
+            data-archive-section="who"
+          >
+            <div className="chroma-about-copy">
+              <span>Signal identity</span>
+              <h2 id="who-title">Who</h2>
+            </div>
+            <div className="chroma-about-stage">
+              <ChromaGrid
+                items={chromaIdentityItems}
+                radius={isMobilePerformanceMode ? 180 : 300}
+                damping={0.45}
+                fadeOut={0.6}
+                ease="power3.out"
+                columns={isMobilePerformanceMode ? 1 : 2}
+                rows={isMobilePerformanceMode ? 4 : 2}
+                staticMode={isMobilePerformanceMode}
+              />
+            </div>
+          </section>
 
           <section
             id="works"
             className="section-panel code-works-panel"
             aria-label="Selected code works"
             ref={worksGate.ref}
+            data-archive-section="works"
           >
             {isMobilePerformanceMode ? (
               <MobileCodeWorks items={codeWorks} />
-            ) : worksGate.isNear ? (
+            ) : (
               <iframe
                 className="code-works-frame"
                 title="Selected Code Works"
                 src="/project-card-swap/index.html"
-                loading="lazy"
+                loading="eager"
               />
-            ) : (
-              <PerformancePlaceholder label="Selected code works preloading" kind="works" />
             )}
           </section>
 
@@ -601,7 +679,9 @@ function App() {
             className="section-panel photography-panel"
             aria-label="Photography"
             ref={photosGate.ref}
+            data-archive-section="photos"
           >
+            <div className="photography-lens-frame" data-lens-frame aria-hidden="true" />
             {photosGate.isNear ? (
               isMobilePerformanceMode ? (
                 <MobilePhotoGallery items={photographyItems} />
@@ -615,33 +695,58 @@ function App() {
             )}
           </section>
 
-        <section id="social" className="section-panel social-panel" aria-labelledby="social-title">
-          <div className="section-copy">
-            <h2 id="social-title">Social</h2>
-            <p>
-              Public channels and identity endpoints. Replace these placeholders
-              with live links when the homepage is ready.
-            </p>
-          </div>
-          <div className="port-list" aria-label="Social links">
-            {socials.map(([label, href]) => (
-              <a href={href} aria-label={label} key={label}>
-                {label}
-              </a>
-            ))}
-          </div>
-        </section>
+          <SocialSignalPorts />
 
-        <section id="contact" className="section-panel contact-panel" aria-labelledby="contact-title">
+        <section
+          id="contact"
+          className="section-panel contact-panel"
+          aria-labelledby="contact-title"
+          data-archive-section="contact"
+        >
           <div className="contact-terminal">
-            <h2 id="contact-title">Contact</h2>
-            <p>
-              For collaboration, commissions, or a direct signal to Ha22yX, use
-              the terminal below and replace the address later.
-            </p>
-            <a className="contact-link" href="mailto:hello@rosebeg.com">
-              hello@rosebeg.com
-            </a>
+            <div className="contact-copy">
+              <span className="contact-kicker">Final signal</span>
+              <h2 id="contact-title">Contact</h2>
+              <p>
+                For collaboration, admissions conversations, portfolio questions,
+                or project inquiries, send a direct signal to Ha22yX.
+              </p>
+              <div className="contact-tags" aria-label="Contact topics">
+                <span>Collaboration</span>
+                <span>Admissions</span>
+                <span>Portfolio</span>
+                <span>Projects</span>
+              </div>
+            </div>
+
+            <div className="contact-signal" aria-hidden="true">
+              <span />
+              <span />
+            </div>
+
+            <div className="contact-endpoint">
+              <span className="endpoint-label">Signal endpoint</span>
+              <a className="contact-link" href={`mailto:${contactEmail}`}>
+                {contactEmail}
+              </a>
+              <div className="contact-actions">
+                <button
+                  className="contact-copy-button"
+                  type="button"
+                  onClick={handleContactCopy}
+                  aria-label="Copy email address"
+                >
+                  Copy signal
+                </button>
+                <span
+                  className="contact-status"
+                  data-active={contactStatus === "copied" ? "true" : "false"}
+                  aria-live="polite"
+                >
+                  {contactStatus === "copied" ? "signal copied" : "direct line open"}
+                </span>
+              </div>
+            </div>
           </div>
         </section>
         </main>

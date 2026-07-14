@@ -28,6 +28,9 @@ const TEXT_PRESSURE_CONFIG = {
   minFontSize: 36
 };
 
+const TEXT_PRESSURE_TARGET_FRAME_MS = 1000 / 60;
+const TEXT_PRESSURE_IDLE_GRACE_MS = 900;
+
 const PROJECTS = [
   {
     name: "Auto Email System",
@@ -293,10 +296,16 @@ class TextPressure {
     this.spans = [];
     this.mouse = { x: 0, y: 0 };
     this.cursor = { x: 0, y: 0 };
+    this.charCenters = [];
+    this.maxDist = 1;
+    this.metricsDirty = true;
     this.fontSize = this.options.minFontSize;
     this.scaleY = 1;
     this.lineHeight = 1;
     this.rafId = 0;
+    this.lastFrameAt = 0;
+    this.lastInteractionAt = 0;
+    this.isRunning = false;
     this.isDestroyed = false;
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleTouchMove = this.handleTouchMove.bind(this);
@@ -333,6 +342,10 @@ class TextPressure {
       const span = document.createElement("span");
       span.dataset.char = char;
       span.textContent = char;
+      if (char === " ") {
+        span.dataset.titleSpace = "true";
+        span.setAttribute("aria-hidden", "true");
+      }
       if (!this.options.stroke) {
         span.style.color = this.options.textColor;
       }
@@ -341,6 +354,7 @@ class TextPressure {
     });
 
     this.container.append(this.title);
+    this.container.dataset.textPressureTargetFrameMs = TEXT_PRESSURE_TARGET_FRAME_MS.toFixed(2);
 
     window.addEventListener("mousemove", this.handleMouseMove);
     window.addEventListener("touchmove", this.handleTouchMove, { passive: true });
@@ -353,14 +367,21 @@ class TextPressure {
     this.cursor.y = this.mouse.y;
 
     this.setSize();
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!this.isDestroyed) {
+          this.setSize();
+        }
+      });
+    }
     this.applyPressureFrame();
     this.container.dataset.textPressureReady = "true";
-    this.animate();
   }
 
   handleMouseMove(event) {
     this.cursor.x = event.clientX;
     this.cursor.y = event.clientY;
+    this.requestAnimation();
   }
 
   handleTouchMove(event) {
@@ -368,6 +389,7 @@ class TextPressure {
     if (!touch) return;
     this.cursor.x = touch.clientX;
     this.cursor.y = touch.clientY;
+    this.requestAnimation();
   }
 
   setSize() {
@@ -384,6 +406,7 @@ class TextPressure {
     this.title.style.fontSize = `${this.fontSize}px`;
     this.title.style.lineHeight = this.lineHeight;
     this.title.style.transform = `scale(1, ${this.scaleY})`;
+    this.metricsDirty = true;
 
     requestAnimationFrame(() => {
       if (!this.title || this.isDestroyed) return;
@@ -395,29 +418,46 @@ class TextPressure {
         this.lineHeight = yRatio;
         this.title.style.lineHeight = this.lineHeight;
         this.title.style.transform = `scale(1, ${this.scaleY})`;
+        this.metricsDirty = true;
       }
+      this.updateCharMetrics();
+      this.requestAnimation();
     });
+  }
+
+  updateCharMetrics() {
+    if (!this.title || this.isDestroyed) return;
+
+    const titleRect = this.title.getBoundingClientRect();
+    this.maxDist = Math.max(1, titleRect.width / 2);
+    this.charCenters = this.spans.map((span) => {
+      if (!span) return { x: 0, y: 0 };
+      const rect = span.getBoundingClientRect();
+      return {
+        x: rect.x + rect.width / 2,
+        y: rect.y + rect.height / 2
+      };
+    });
+    this.metricsDirty = false;
   }
 
   applyPressureFrame() {
     if (this.title) {
-      const titleRect = this.title.getBoundingClientRect();
-      const maxDist = titleRect.width / 2;
+      if (this.metricsDirty || this.charCenters.length !== this.spans.length) {
+        this.updateCharMetrics();
+      }
 
-      this.spans.forEach((span) => {
+      this.spans.forEach((span, index) => {
         if (!span) return;
 
-        const rect = span.getBoundingClientRect();
-        const charCenter = {
-          x: rect.x + rect.width / 2,
-          y: rect.y + rect.height / 2
-        };
+        const charCenter = this.charCenters[index];
+        if (!charCenter) return;
 
         const distance = pressureDist(this.mouse, charCenter);
-        const wdth = this.options.width ? Math.floor(getPressureAttr(distance, maxDist, 5, 200)) : 100;
-        const wght = this.options.weight ? Math.floor(getPressureAttr(distance, maxDist, 100, 900)) : 400;
-        const italVal = this.options.italic ? getPressureAttr(distance, maxDist, 0, 1).toFixed(2) : 0;
-        const alphaVal = this.options.alpha ? getPressureAttr(distance, maxDist, 0, 1).toFixed(2) : 1;
+        const wdth = this.options.width ? Math.floor(getPressureAttr(distance, this.maxDist, 5, 200)) : 100;
+        const wght = this.options.weight ? Math.floor(getPressureAttr(distance, this.maxDist, 100, 900)) : 400;
+        const italVal = this.options.italic ? getPressureAttr(distance, this.maxDist, 0, 1).toFixed(2) : 0;
+        const alphaVal = this.options.alpha ? getPressureAttr(distance, this.maxDist, 0, 1).toFixed(2) : 1;
         const fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
 
         if (span.style.fontVariationSettings !== fontVariationSettings) {
@@ -431,15 +471,38 @@ class TextPressure {
     }
   }
 
-  animate() {
+  requestAnimation() {
+    if (this.isDestroyed) return;
+    this.lastInteractionAt = performance.now();
+    if (this.isRunning) return;
+    this.isRunning = true;
+    this.lastFrameAt = 0;
+    this.rafId = requestAnimationFrame((time) => this.animate(time));
+  }
+
+  animate(time = performance.now()) {
     if (this.isDestroyed) return;
 
+    if (this.lastFrameAt > 0 && time - this.lastFrameAt < TEXT_PRESSURE_TARGET_FRAME_MS) {
+      this.rafId = requestAnimationFrame((nextTime) => this.animate(nextTime));
+      return;
+    }
+
+    this.lastFrameAt = time;
     this.mouse.x += (this.cursor.x - this.mouse.x) / 15;
     this.mouse.y += (this.cursor.y - this.mouse.y) / 15;
 
     this.applyPressureFrame();
 
-    this.rafId = requestAnimationFrame(() => this.animate());
+    const settled = Math.abs(this.cursor.x - this.mouse.x) < 0.15 && Math.abs(this.cursor.y - this.mouse.y) < 0.15;
+    const idle = time - this.lastInteractionAt > TEXT_PRESSURE_IDLE_GRACE_MS;
+    if (settled && idle) {
+      this.isRunning = false;
+      this.rafId = 0;
+      return;
+    }
+
+    this.rafId = requestAnimationFrame((nextTime) => this.animate(nextTime));
   }
 
   destroy() {
@@ -449,6 +512,7 @@ class TextPressure {
     window.removeEventListener("touchmove", this.handleTouchMove);
     window.removeEventListener("resize", this.debouncedSetSize);
     this.container.removeAttribute("data-text-pressure-ready");
+    this.container.removeAttribute("data-text-pressure-target-frame-ms");
   }
 }
 
@@ -1836,6 +1900,18 @@ class CardSwap {
       button.dataset.hoverReady = "true";
       const card = button.closest(".card");
       if (card?.classList.contains("is-front") && !this.expandedCard) {
+        const frame = this.getFrame(card);
+        const rect = frame?.getBoundingClientRect();
+        if (rect && !card.dataset.preHoverFrameRect) {
+          card.dataset.preHoverFrameRect = JSON.stringify({
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height
+          });
+          card.dataset.preHoverCardStyle = card.getAttribute("style") || "";
+          card.dataset.preHoverFrameStyle = frame?.getAttribute("style") || "";
+        }
         this.cards.forEach((candidate) => candidate.classList.remove("is-hovered"));
         card.classList.add("is-hovered");
         this.hoverPaused = true;
@@ -1902,10 +1978,40 @@ class CardSwap {
     if (this.expandedCard || this.isRestoringExpandedCard || !card) return;
 
     this.ensureCardContent(card);
-    this.lockProgressAnimation();
 
     const frame = this.getFrame(card);
-    const startRect = frame?.getBoundingClientRect() ?? card.getBoundingClientRect();
+    const preHoverFrameRect = (() => {
+      if (!card.dataset.preHoverFrameRect) return null;
+      try {
+        const rect = JSON.parse(card.dataset.preHoverFrameRect);
+        if (
+          typeof rect.left === "number" &&
+          typeof rect.top === "number" &&
+          typeof rect.width === "number" &&
+          typeof rect.height === "number"
+        ) {
+          return rect;
+        }
+      } catch {
+        return null;
+      }
+
+      return null;
+    })();
+    const preHoverCardStyle = card.dataset.preHoverCardStyle;
+    const preHoverFrameStyle = card.dataset.preHoverFrameStyle;
+    card.classList.add("is-measuring-compact");
+    card.classList.remove("is-hovered");
+    frame?.getBoundingClientRect();
+    const startRect = preHoverFrameRect ?? frame?.getBoundingClientRect() ?? card.getBoundingClientRect();
+    const frameStyle = preHoverFrameStyle ?? frame?.getAttribute("style") ?? "";
+    const cardStyle = preHoverCardStyle ?? card.getAttribute("style") ?? "";
+    delete card.dataset.preHoverFrameRect;
+    delete card.dataset.preHoverCardStyle;
+    delete card.dataset.preHoverFrameStyle;
+    card.classList.remove("is-measuring-compact");
+    this.lockProgressAnimation();
+
     const targetRect = this.getExpandedTargetRect();
     const startSkewY = Number(gsap.getProperty(card, "skewY")) || this.skewAmount;
     const fittedStartRect = getSkewFittedRect(startRect, startSkewY);
@@ -1928,7 +2034,8 @@ class CardSwap {
       card,
       parent: card.parentNode,
       nextSibling: card.nextSibling,
-      style: card.getAttribute("style") || "",
+      style: cardStyle,
+      frameStyle,
       rect: startRect,
       compactSkewY: startSkewY,
       progress: this.currentProgress
@@ -2040,7 +2147,7 @@ class CardSwap {
       rotateZ: 0,
       skewY: snapshot.compactSkewY ?? this.skewAmount,
       scale: 1,
-      duration: 0.58,
+      duration: 0.72,
       delay: 0.04,
       ease: "power3.inOut",
       overwrite: true,
@@ -2056,7 +2163,6 @@ class CardSwap {
             snapshot.parent.append(card);
           }
         }
-        card.setAttribute("style", snapshot.style);
         card.classList.remove("is-expanded", "is-restoring", "is-expanded-layout", "is-details-visible");
         delete card.dataset.expansionTilt;
         this.expandedCard = null;
@@ -2066,6 +2172,15 @@ class CardSwap {
         this.currentProgress = snapshot.progress;
         this.targetProgress = snapshot.progress;
         this.renderProgress(this.currentProgress);
+        card.setAttribute("style", snapshot.style);
+        const frame = this.getFrame(card);
+        if (frame) {
+          if (snapshot.frameStyle) {
+            frame.setAttribute("style", snapshot.frameStyle);
+          } else {
+            frame.removeAttribute("style");
+          }
+        }
         this.stackRevealTimer = window.setTimeout(() => {
           this.container.classList.remove("is-revealing-stack");
           this.stackRevealTimer = null;
