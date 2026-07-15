@@ -41,6 +41,8 @@ void main() {
 const ASCII_TARGET_FRAME_MS = 1000 / 20;
 const ASCII_MIN_CELL_PX = 4;
 const ASCII_ALPHA_CUTOFF = 18;
+const ASCII_FONT_FAMILY =
+  '"Cascadia Mono", "SFMono-Regular", "JetBrains Mono", Consolas, "Courier New", monospace';
 
 function clampChannel(value: number) {
   return Math.max(0, Math.min(255, Math.round(value)));
@@ -126,7 +128,7 @@ class AsciiFilter {
 
     this.invert = options.invert ?? true;
     this.fontSize = options.fontSize ?? 9;
-    this.fontFamily = options.fontFamily ?? "'IBM Plex Mono', 'Courier New', monospace";
+    this.fontFamily = options.fontFamily ?? ASCII_FONT_FAMILY;
     this.charset =
       options.charset ??
       " .'`^\",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
@@ -238,7 +240,7 @@ class CanvasText {
       layoutText,
       anchorText = layoutText,
       fontSize = 160,
-      fontFamily = "'IBM Plex Mono', 'Courier New', monospace",
+      fontFamily = ASCII_FONT_FAMILY,
       color = "#fdf9f3",
       alignMode = "center",
     }: {
@@ -443,7 +445,7 @@ class CanvasAscii {
     this.renderer.setClearColor(0x000000, 0);
 
     this.filter = new AsciiFilter(this.renderer, {
-      fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
+      fontFamily: ASCII_FONT_FAMILY,
       fontSize: this.options.asciiFontSize,
       invert: true,
     });

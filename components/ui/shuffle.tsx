@@ -138,16 +138,26 @@ export function Shuffle({
 
       gsap.set(strip, { clearProps: "transform" });
       if (fixedCharacterMetrics) {
-        wrapper.style.width = "1ch";
-        wrapper.style.height = isVertical ? "1em" : "";
+        const fixedLineHeight = "0.94em";
+        wrapper.style.width = "";
+        wrapper.style.height = fixedLineHeight;
+        wrapper.style.lineHeight = fixedLineHeight;
         chars.forEach((char) => {
-          char.style.width = "1ch";
+          char.style.width = "";
+          char.style.lineHeight = fixedLineHeight;
         });
 
-        if (!fixedWidth) {
-          fixedWidth = wrapper.offsetWidth || finalChar.offsetWidth || 1;
-          fixedHeight = wrapper.offsetHeight || finalChar.offsetHeight || 1;
-        }
+        const rect = finalChar.getBoundingClientRect();
+        const width = Math.ceil(Math.max(1, rect.width || finalChar.offsetWidth || wrapper.offsetWidth) + 2);
+        const height = Math.ceil(Math.max(1, rect.height || finalChar.offsetHeight || wrapper.offsetHeight));
+
+        wrapper.style.width = `${width}px`;
+        chars.forEach((char) => {
+          char.style.width = `${width}px`;
+        });
+
+        fixedWidth = width;
+        fixedHeight = height;
 
         setStripPlacement(strip, shuffleDirection, steps, fixedWidth, isVertical ? fixedHeight : 1, placement);
         return;

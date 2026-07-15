@@ -196,8 +196,8 @@ test("presents the contact terminal as finished admissions-ready copy", async ({
   const contact = page.locator("[data-archive-section='contact']");
   await expect(contact).not.toContainText(/replace/i);
   await expect(contact).toContainText("admissions conversations");
-  await expect(contact.getByRole("link", { name: "hello@rosebeg.com" })).toHaveAttribute(
+  await expect(contact.getByRole("link", { name: "ha22y.xing@gmail.com" })).toHaveAttribute(
     "href",
-    "mailto:hello@rosebeg.com"
+    "mailto:ha22y.xing@gmail.com"
   );
 });

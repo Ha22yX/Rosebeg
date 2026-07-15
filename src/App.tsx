@@ -63,8 +63,6 @@ const mobileTitleSequence: MobileTitleStep[] = [
   { action: "type", text: "Welcome to Rosebeg", targetText: "Welcome to Rosebeg" },
 ];
 
-const contactEmail = "hello@rosebeg.com";
-
 function detectMobilePerformanceMode() {
   if (typeof window === "undefined") {
     return false;
@@ -130,40 +128,40 @@ const photographyItems: InfiniteMenuItem[] = [
 
 const chromaIdentityItems: ChromaGridItem[] = [
   {
-    image: "/assets/identity/developer-lab.jpg",
+    image: "/assets/identity/developer-code-signal.svg",
     title: "Developer",
-    subtitle: "Full-stack systems, AI tools, product engineering",
+    subtitle: "I build intelligent systems, web experiences, and tools that turn ideas into working products.",
+    location: "AI systems · Full-stack development · Creative coding",
     handle: "@code",
     borderColor: "#93F3FF",
-    gradient: "linear-gradient(145deg, #164D58, #000)",
-    url: "#works",
+    gradient: "linear-gradient(145deg, rgb(13 83 91 / 0.82), #02030b 72%)",
   },
   {
-    image: "/assets/photography/signal-plain-thumb.jpg",
+    image: "/assets/identity/research-autonomy.svg",
     title: "Researcher",
-    subtitle: "Signal fields, hardware prototypes, autonomy experiments",
+    subtitle: "I explore autonomous systems, multi-sensor fusion, and high-precision UAV coordination.",
+    location: "UAV autonomy · Sensor fusion · Prototyping",
     handle: "@lab",
-    borderColor: "#CFFF58",
-    gradient: "linear-gradient(210deg, #536B2D, #000)",
-    url: "#works",
+    borderColor: "#B9FF6A",
+    gradient: "linear-gradient(210deg, rgb(86 109 43 / 0.78), #02030b 74%)",
   },
   {
     image: "/assets/photography/night-current-thumb.jpg",
     title: "Photographer",
-    subtitle: "Architecture, street light, quiet spatial narratives",
+    subtitle: "I document architecture, street light, and quiet moments that are easy to overlook.",
+    location: "Architecture · Street · Visual storytelling",
     handle: "@field",
-    borderColor: "#F59E0B",
-    gradient: "linear-gradient(165deg, #6F4D18, #000)",
-    url: "#photos",
+    borderColor: "#D8A535",
+    gradient: "linear-gradient(165deg, rgb(105 71 18 / 0.78), #02030b 76%)",
   },
   {
-    image: "/assets/photography/afterimage-thumb.jpg",
+    image: "/assets/identity/designer-geometric-head.svg",
     title: "Designer",
-    subtitle: "Identity systems, motion language, interface atmosphere",
+    subtitle: "I shape interfaces, identities, and digital atmospheres where technology feels intentional.",
+    location: "Interface · Motion · Visual identity",
     handle: "@visual",
     borderColor: "#8B5CF6",
-    gradient: "linear-gradient(195deg, #5227FF, #000)",
-    url: "#contact",
+    gradient: "linear-gradient(195deg, rgb(82 39 255 / 0.76), #02030b 76%)",
   },
 ];
 
@@ -429,7 +427,6 @@ function App() {
   const [isCompact, setIsCompact] = useState(false);
   const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(() => detectMobilePerformanceMode());
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-  const [contactStatus, setContactStatus] = useState<"idle" | "copied">("idle");
   const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "120px", activeMargin: "80px" });
   const worksGate = useViewportGate<HTMLElement>({
     preloadMargin: isMobilePerformanceMode ? "360px" : "680px",
@@ -449,16 +446,6 @@ function App() {
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
-
-  const handleContactCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(contactEmail);
-      setContactStatus("copied");
-      window.setTimeout(() => setContactStatus("idle"), 1800);
-    } catch {
-      window.location.href = `mailto:${contactEmail}`;
-    }
-  };
 
   useEffect(() => {
     const mobileMedia = window.matchMedia("(max-width: 720px), (pointer: coarse)");
@@ -639,12 +626,12 @@ function App() {
           >
             <div className="chroma-about-copy">
               <span>Signal identity</span>
-              <h2 id="who-title">Who</h2>
+              <h2 id="who-title">Who I Am</h2>
             </div>
             <div className="chroma-about-stage">
               <ChromaGrid
                 items={chromaIdentityItems}
-                radius={isMobilePerformanceMode ? 180 : 300}
+                radius={isMobilePerformanceMode ? 180 : 340}
                 damping={0.45}
                 fadeOut={0.6}
                 ease="power3.out"
@@ -696,59 +683,6 @@ function App() {
           </section>
 
           <SocialSignalPorts />
-
-        <section
-          id="contact"
-          className="section-panel contact-panel"
-          aria-labelledby="contact-title"
-          data-archive-section="contact"
-        >
-          <div className="contact-terminal">
-            <div className="contact-copy">
-              <span className="contact-kicker">Final signal</span>
-              <h2 id="contact-title">Contact</h2>
-              <p>
-                For collaboration, admissions conversations, portfolio questions,
-                or project inquiries, send a direct signal to Ha22yX.
-              </p>
-              <div className="contact-tags" aria-label="Contact topics">
-                <span>Collaboration</span>
-                <span>Admissions</span>
-                <span>Portfolio</span>
-                <span>Projects</span>
-              </div>
-            </div>
-
-            <div className="contact-signal" aria-hidden="true">
-              <span />
-              <span />
-            </div>
-
-            <div className="contact-endpoint">
-              <span className="endpoint-label">Signal endpoint</span>
-              <a className="contact-link" href={`mailto:${contactEmail}`}>
-                {contactEmail}
-              </a>
-              <div className="contact-actions">
-                <button
-                  className="contact-copy-button"
-                  type="button"
-                  onClick={handleContactCopy}
-                  aria-label="Copy email address"
-                >
-                  Copy signal
-                </button>
-                <span
-                  className="contact-status"
-                  data-active={contactStatus === "copied" ? "true" : "false"}
-                  aria-live="polite"
-                >
-                  {contactStatus === "copied" ? "signal copied" : "direct line open"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
         </main>
       </div>
       <SignalNavigation isOpen={isNavigationOpen} onOpenChange={setIsNavigationOpen} />

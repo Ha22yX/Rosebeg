@@ -63,7 +63,7 @@ test("renders the social section as a reusable signal ports sample", async ({ pa
   );
   await expect(panel.getByRole("link", { name: /04 Email/i })).toHaveAttribute(
     "href",
-    "mailto:hello@rosebeg.com"
+    "mailto:ha22y.xing@gmail.com"
   );
 
   await panel.getByRole("link", { name: /01 GitHub/i }).hover();

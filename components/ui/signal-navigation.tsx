@@ -9,13 +9,12 @@ const menuItems = [
   { label: "WORKS", ariaLabel: "Works", link: "#works" },
   { label: "PHOTOS", ariaLabel: "Photos", link: "#photos" },
   { label: "SOCIAL", ariaLabel: "Social", link: "#social" },
-  { label: "CONTACT", ariaLabel: "Contact", link: "#contact" },
 ];
 
 const socialItems = [
   { label: "GitHub", link: "https://github.com/Ha22yX" },
   { label: "X", link: "#" },
-  { label: "Email", link: "mailto:hello@rosebeg.com" },
+  { label: "Email", link: "mailto:ha22y.xing@gmail.com" },
 ];
 
 const SHUFFLE_SEQUENCE_DELAY = 0.25;

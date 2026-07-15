@@ -14,7 +14,7 @@ const CARD_SWAP_CONFIG = {
 
 const TEXT_PRESSURE_CONFIG = {
   text: "Selected Code Works",
-  fontFamily: "Roboto Flex",
+  fontFamily: "Roboto Flex, Segoe UI Variable, system-ui, sans-serif",
   fontUrl: "https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=block",
   width: true,
   weight: true,

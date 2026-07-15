@@ -111,9 +111,20 @@ export const ChromaGrid = ({
   const data = items?.length ? items : demo;
 
   const handleCardClick = (url?: string) => {
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
+    if (!url) {
+      return;
     }
+
+    if (url.startsWith("#")) {
+      const target = document.getElementById(url.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.history.pushState(null, "", url);
+      }
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleCardMove = (e: PointerEvent<HTMLElement>) => {

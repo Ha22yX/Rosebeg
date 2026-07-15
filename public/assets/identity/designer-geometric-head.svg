@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Abstract artistic human face for design identity">
+  <defs>
+    <radialGradient id="bg" cx="46%" cy="42%" r="72%">
+      <stop offset="0" stop-color="#312160"/>
+      <stop offset="0.48" stop-color="#0c0a1a"/>
+      <stop offset="1" stop-color="#02030a"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7e8"/>
+      <stop offset="0.42" stop-color="#dacbe1"/>
+      <stop offset="0.72" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#050612"/>
+    </linearGradient>
+    <linearGradient id="cyanStroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#93f3ff"/>
+      <stop offset="0.55" stop-color="#dacbe1"/>
+      <stop offset="1" stop-color="#b9ff6a"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.58 0 0 0 0 0.95 0 0 0 0 1 0 0 0 0.42 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="grain">
+      <feTurbulence baseFrequency="0.72" numOctaves="3" seed="19" type="fractalNoise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.13"/>
+      </feComponentTransfer>
+    </filter>
+    <pattern id="dotGrid" width="38" height="38" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#dacbe1" fill-opacity="0.16"/>
+    </pattern>
+    <clipPath id="portraitClip">
+      <path d="M744 160c-168 28-276 136-310 304-29 143 23 264 131 341 78 55 181 70 272 39 85-29 145-93 178-178 22-57 23-117 12-176l126-59-150-54c-38-130-130-242-259-217Z"/>
+    </clipPath>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#dotGrid)" opacity="0.54"/>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity="0.72"/>
+
+  <g opacity="0.55">
+    <path d="M124 760C326 598 424 684 580 548c196-170 288-326 538-232 146 55 238 26 370-78" fill="none" stroke="#8b5cf6" stroke-width="22" stroke-opacity="0.16"/>
+    <path d="M180 220h380M1040 720h344M1172 276h176" stroke="#93f3ff" stroke-width="3" stroke-opacity="0.22"/>
+    <circle cx="1230" cy="480" r="156" fill="none" stroke="#dacbe1" stroke-opacity="0.12" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#softGlow)">
+    <g clip-path="url(#portraitClip)">
+      <rect x="374" y="132" width="820" height="760" fill="url(#skin)"/>
+      <path d="M408 154h346v738H408Z" fill="#050612" fill-opacity="0.58"/>
+      <path d="M754 142 1196 332 1002 874 754 892Z" fill="#93f3ff" fill-opacity="0.14"/>
+      <path d="M594 188 946 118 1014 392 720 444Z" fill="#fff7e8" fill-opacity="0.18"/>
+      <path d="M770 442 1130 430 1004 712 712 782Z" fill="#8b5cf6" fill-opacity="0.34"/>
+      <path d="M450 674 690 428 742 892 520 852Z" fill="#02030a" fill-opacity="0.42"/>
+      <path d="M782 190c50 116 64 254 14 388-38 101-38 183 22 274" fill="none" stroke="#fff7e8" stroke-opacity="0.8" stroke-width="7"/>
+      <path d="M596 382c68-38 150-38 226 0" fill="none" stroke="#02030a" stroke-opacity="0.82" stroke-width="14" stroke-linecap="round"/>
+      <ellipse cx="680" cy="398" rx="48" ry="24" fill="#93f3ff" fill-opacity="0.28" stroke="#93f3ff" stroke-width="7"/>
+      <circle cx="680" cy="398" r="9" fill="#fff7e8"/>
+      <path d="M820 378 920 412 828 454Z" fill="#02030a" fill-opacity="0.78"/>
+      <path d="M708 616c68 34 144 26 212-20" fill="none" stroke="#b9ff6a" stroke-width="9" stroke-linecap="round"/>
+      <path d="M514 278 1060 792M1088 298 496 820" stroke="#dacbe1" stroke-opacity="0.17" stroke-width="4"/>
+    </g>
+    <path d="M744 160c-168 28-276 136-310 304-29 143 23 264 131 341 78 55 181 70 272 39 85-29 145-93 178-178 22-57 23-117 12-176l126-59-150-54c-38-130-130-242-259-217Z" fill="none" stroke="url(#cyanStroke)" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M440 474c-76 8-140 54-173 122M1088 252c78-60 152-78 246-54M984 826c98 24 190 13 278-36" fill="none" stroke="#93f3ff" stroke-opacity="0.4" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" fill="#93f3ff">
+    <text x="112" y="134" font-size="24" font-weight="900" letter-spacing="4">DESIGN PERSONA / ABSTRACT FACE</text>
+    <text x="112" y="176" font-size="15" opacity="0.62" letter-spacing="3">INTERFACE  MOTION  IDENTITY  ATMOSPHERE</text>
+    <text x="1118" y="820" font-size="18" opacity="0.58" letter-spacing="6">VISUAL INTENT</text>
+  </g>
+</svg>

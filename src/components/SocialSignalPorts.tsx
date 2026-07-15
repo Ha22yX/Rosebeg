@@ -53,10 +53,10 @@ export const defaultSignalPorts: SignalPort[] = [
   {
     index: "04",
     label: "Email",
-    href: "mailto:hello@rosebeg.com",
-    handle: "hello@rosebeg.com",
+    href: "mailto:ha22y.xing@gmail.com",
+    handle: "ha22y.xing@gmail.com",
     description: "Direct channel",
-    endpoint: "mailto://hello@rosebeg.com",
+    endpoint: "mailto://ha22y.xing@gmail.com",
     action: "SEND",
     tone: "#ff7a1a",
   },
@@ -84,7 +84,7 @@ const signalPortsStyles = `
 
 .signal-ports-kicker {
   color: rgb(142 246 255 / 0.9);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -94,8 +94,9 @@ const signalPortsStyles = `
 .signal-ports-copy h2 {
   margin: 0;
   color: var(--bone, #f3eee6);
+  font-family: var(--font-display);
   font-size: clamp(3.25rem, 7.4vw, 7.2rem);
-  font-weight: 940;
+  font-weight: 400;
   line-height: 0.84;
   letter-spacing: 0;
   text-shadow:
@@ -118,7 +119,7 @@ const signalPortsStyles = `
   border-left: 1px solid rgb(142 246 255 / 0.34);
   padding: 3px 0 3px 15px;
   color: rgb(243 238 230 / 0.56);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
 }
 
@@ -285,7 +286,7 @@ const signalPortsStyles = `
   justify-content: space-between;
   gap: 14px;
   color: rgb(228 236 215 / 0.72);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(0.62rem, 0.8vw, 0.75rem);
   font-weight: 850;
   letter-spacing: 0.1em;
@@ -305,7 +306,7 @@ const signalPortsStyles = `
   align-items: center;
   gap: 8px;
   color: rgb(243 238 230 / 0.48);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.66rem;
   font-weight: 850;
   letter-spacing: 0.08em;
@@ -691,7 +692,7 @@ const signalPortsStyles = `
 
 .signal-port-index {
   color: var(--port-tone);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -722,7 +723,7 @@ const signalPortsStyles = `
 .signal-port-endpoint {
   overflow: hidden;
   color: rgb(238 239 225 / 0.5);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -760,7 +761,7 @@ const signalPortsStyles = `
   padding: 5px 7px;
   color: var(--port-tone);
   background: rgb(0 0 0 / 0.22);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -774,7 +775,7 @@ const signalPortsStyles = `
   display: flex;
   gap: 18px;
   color: rgb(228 236 215 / 0.52);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.66rem;
   font-weight: 850;
   letter-spacing: 0.08em;
