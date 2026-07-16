@@ -13,7 +13,7 @@ const menuItems = [
 
 const socialItems = [
   { label: "GitHub", link: "https://github.com/Ha22yX" },
-  { label: "X", link: "#" },
+  { label: "WeChat", link: "weixin://contacts/profile/imxzy945" },
   { label: "Email", link: "mailto:ha22y.xing@gmail.com" },
 ];
 

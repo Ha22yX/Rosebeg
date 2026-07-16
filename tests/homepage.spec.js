@@ -17,7 +17,7 @@ test("renders the social section as a reusable signal ports sample", async ({ pa
   const panel = page.locator("[data-signal-ports-sample]");
   await expect(panel).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Connect" })).toBeVisible();
-  await expect(panel.getByText("GitHub, X, Instagram, and Email")).toBeVisible();
+  await expect(panel.getByText("GitHub, WeChat, Instagram, and Email")).toBeVisible();
 
   await expect(panel.locator("[data-hardware-drive]")).toBeVisible();
   await expect(panel.locator(".drive-key-notch")).toHaveCount(0);
@@ -918,7 +918,7 @@ test("exposes photography menu items and social placeholders", async ({ page }) 
   });
 
   const socialLabels = page.locator("[data-signal-port] .signal-port-label");
-  for (const label of ["GitHub", "X", "Instagram", "Email"]) {
+  for (const label of ["GitHub", "WeChat", "Instagram", "Email"]) {
     await expect(socialLabels.filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible();
   }
 });
