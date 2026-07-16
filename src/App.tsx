@@ -218,7 +218,7 @@ const chromaIdentityItems: ChromaGridItem[] = [
     gradient: "linear-gradient(165deg, rgb(105 71 18 / 0.78), #02030b 76%)",
   },
   {
-    image: "/assets/identity/designer-geometric-head.svg",
+    image: "/assets/identity/designer-identity.webp",
     title: "Designer",
     subtitle: "I shape interfaces, identities, and digital atmospheres where technology feels intentional.",
     location: "Interface · Motion · Visual identity",
