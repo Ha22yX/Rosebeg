@@ -191,7 +191,7 @@ const photographyItems: InfiniteMenuItem[] = [
 
 const chromaIdentityItems: ChromaGridItem[] = [
   {
-    image: "/assets/identity/developer-code-signal-v2.svg",
+    image: "/assets/identity/developer-code-signal-v4.svg",
     title: "Developer",
     subtitle: "I build intelligent systems, web experiences, and tools that turn ideas into working products.",
     location: "AI systems · Full-stack development · Creative coding",
