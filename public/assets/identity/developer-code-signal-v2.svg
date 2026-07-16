@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Developer code interface introducing Ha22yX">
+  <defs>
+    <radialGradient id="devBg" cx="45%" cy="42%" r="72%">
+      <stop offset="0" stop-color="#10262e"/>
+      <stop offset="0.46" stop-color="#071116"/>
+      <stop offset="1" stop-color="#02030a"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#122b32" stop-opacity="0.94"/>
+      <stop offset="0.56" stop-color="#05070d" stop-opacity="0.96"/>
+      <stop offset="1" stop-color="#0d151c" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#93f3ff"/>
+      <stop offset="0.58" stop-color="#dacbe1"/>
+      <stop offset="1" stop-color="#b9ff6a"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.35" fill="#93f3ff" fill-opacity="0.22"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#devBg)"/>
+  <rect width="1600" height="1000" fill="url(#dots)" opacity="0.82"/>
+  <g opacity="0.7">
+    <path d="M120 202h1360M120 824h1360M250 94v812M1358 94v812" stroke="#93f3ff" stroke-opacity="0.12"/>
+    <path d="M106 514c218-156 344-104 512-190 248-127 442-90 800 124" fill="none" stroke="#93f3ff" stroke-opacity="0.2" stroke-width="3" stroke-dasharray="12 18"/>
+  </g>
+  <g transform="translate(196 142)">
+    <rect x="76" y="46" width="1130" height="664" rx="28" fill="#02030a" fill-opacity="0.34" stroke="#93f3ff" stroke-opacity="0.12"/>
+    <rect x="0" y="0" width="1160" height="654" rx="26" fill="url(#panel)" stroke="#93f3ff" stroke-opacity="0.42"/>
+    <rect x="0" y="0" width="1160" height="72" rx="26" fill="#111418"/>
+    <rect x="0" y="46" width="1160" height="26" fill="#111418"/>
+    <circle cx="38" cy="36" r="8" fill="#ff6f7f"/>
+    <circle cx="66" cy="36" r="8" fill="#d8a535"/>
+    <circle cx="94" cy="36" r="8" fill="#6ee7a8"/>
+    <text x="140" y="43" fill="#dacbe1" fill-opacity="0.72" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="21" font-weight="800">rosebeg.identity.tsx</text>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="31" font-weight="700">
+      <text x="70" y="142" fill="#64747a">01</text>
+      <text x="132" y="142" fill="#8ef2ff">import</text>
+      <text x="254" y="142" fill="#dacbe1">{"{"}</text>
+      <text x="292" y="142" fill="#b9ff6a">systems</text>
+      <text x="430" y="142" fill="#dacbe1">{", "}</text>
+      <text x="484" y="142" fill="#b9ff6a">signals</text>
+      <text x="630" y="142" fill="#dacbe1">{", "}</text>
+      <text x="684" y="142" fill="#b9ff6a">taste</text>
+      <text x="792" y="142" fill="#dacbe1">{"}"}</text>
+      <text x="840" y="142" fill="#8ef2ff">from</text>
+      <text x="930" y="142" fill="#d8a535">"rosebeg"</text>
+      <text x="70" y="206" fill="#64747a">02</text>
+      <text x="132" y="206" fill="#8ef2ff">const</text>
+      <text x="232" y="206" fill="#dacbe1">Rosebeg = createSignalField({"{"}</text>
+      <text x="70" y="270" fill="#64747a">03</text>
+      <text x="172" y="270" fill="#93f3ff">systems</text>
+      <text x="330" y="270" fill="#dacbe1">: [</text>
+      <text x="382" y="270" fill="#d8a535">"AI"</text>
+      <text x="466" y="270" fill="#dacbe1">,</text>
+      <text x="506" y="270" fill="#d8a535">"web"</text>
+      <text x="604" y="270" fill="#dacbe1">,</text>
+      <text x="644" y="270" fill="#d8a535">"tools"</text>
+      <text x="780" y="270" fill="#dacbe1">],</text>
+      <text x="70" y="334" fill="#64747a">04</text>
+      <text x="172" y="334" fill="#93f3ff">method</text>
+      <text x="310" y="334" fill="#dacbe1">: </text>
+      <text x="354" y="334" fill="#d8a535">"turn ideas into products"</text>
+      <text x="70" y="398" fill="#64747a">05</text>
+      <text x="172" y="398" fill="#93f3ff">style</text>
+      <text x="288" y="398" fill="#dacbe1">: </text>
+      <text x="334" y="398" fill="#d8a535">"precise, visual, experimental"</text>
+      <text x="70" y="462" fill="#64747a">06</text>
+      <text x="132" y="462" fill="#dacbe1">{"})"}</text>
+      <text x="70" y="548" fill="#64747a">07</text>
+      <text x="132" y="548" fill="#8ef2ff">export default</text>
+      <text x="402" y="548" fill="#dacbe1">Ha22yX</text>
+    </g>
+    <g transform="translate(734 326)" filter="url(#glow)">
+      <rect width="342" height="194" rx="22" fill="#071015" fill-opacity="0.82" stroke="url(#cyan)" stroke-opacity="0.9"/>
+      <text x="30" y="48" fill="#93f3ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="900">BUILD STATUS</text>
+      <text x="30" y="92" fill="#dacbe1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="24" font-weight="900">creative systems online</text>
+      <path d="M32 134h72M126 134h112M260 134h48" stroke="#b9ff6a" stroke-width="6" stroke-linecap="round"/>
+      <path d="M32 162h144M198 162h82" stroke="#93f3ff" stroke-width="6" stroke-linecap="round" opacity="0.64"/>
+    </g>
+  </g>
+</svg>
