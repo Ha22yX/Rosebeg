@@ -200,7 +200,7 @@ const chromaIdentityItems: ChromaGridItem[] = [
     gradient: "linear-gradient(145deg, rgb(13 83 91 / 0.82), #02030b 72%)",
   },
   {
-    image: "/assets/identity/research-autonomy.svg",
+    image: "/assets/identity/researcher-identity.webp",
     title: "Researcher",
     subtitle: "I explore autonomous systems, multi-sensor fusion, and high-precision UAV coordination.",
     location: "UAV autonomy · Sensor fusion · Prototyping",
