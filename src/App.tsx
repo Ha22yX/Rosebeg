@@ -10,9 +10,10 @@ import { SignalNavigation } from "@/components/ui/signal-navigation";
 import { ShaderBackground } from "@/src/components/ShaderBackground";
 import { SocialSignalPorts } from "@/src/components/SocialSignalPorts";
 
-const InfiniteMenu = lazy(() =>
-  import("@/components/ui/infinite-menu").then((module) => ({ default: module.InfiniteMenu }))
-);
+const loadInfiniteMenu = () =>
+  import("@/components/ui/infinite-menu").then((module) => ({ default: module.InfiniteMenu }));
+
+const InfiniteMenu = lazy(loadInfiniteMenu);
 
 const compactAsciiLayoutTitle = `A personal
 portfolio
@@ -496,7 +497,7 @@ function App() {
     activeMargin: "160px",
   });
   const photosGate = useViewportGate<HTMLElement>({
-    preloadMargin: isMobilePerformanceMode ? "420px" : "760px",
+    preloadMargin: isMobilePerformanceMode ? "420px" : "1280px",
     activeMargin: "160px",
   });
   const asciiTitle = getAsciiTitleLayers(titleState.displayText, titleState.targetText, isCompact);
@@ -525,6 +526,28 @@ function App() {
       reducedMotionMedia.removeEventListener("change", sync);
     };
   }, []);
+
+  useEffect(() => {
+    if (isMobilePerformanceMode) {
+      return undefined;
+    }
+
+    const preload = () => {
+      void loadInfiniteMenu();
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      const idleHandle = idleWindow.requestIdleCallback(preload, { timeout: 1800 });
+      return () => idleWindow.cancelIdleCallback?.(idleHandle);
+    }
+
+    const timer = window.setTimeout(preload, 900);
+    return () => window.clearTimeout(timer);
+  }, [isMobilePerformanceMode]);
 
   useEffect(() => {
     if (!isMobilePerformanceMode) {
@@ -671,10 +694,10 @@ function App() {
                           planeBaseHeight={asciiRender.planeBaseHeight}
                           alignMode="layout"
                           resizeMode="debounced"
-                          enableWaves={false}
+                          enableWaves
                           active={heroGate.isNear}
-                          animated={false}
-                          maxFps={3}
+                          animated
+                          maxFps={10}
                           renderWhenPaused={false}
                         />
                       </span>

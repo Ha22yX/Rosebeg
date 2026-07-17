@@ -1074,7 +1074,7 @@ class InfiniteGridMenu {
             image.crossOrigin = "anonymous";
             image.onload = () => resolve(image);
             image.onerror = () => resolve(image);
-            image.src = item.link || item.image;
+            image.src = item.image || item.link;
           })
       )
     ).then((images) => {
@@ -1546,12 +1546,16 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   }, [active]);
 
   useEffect(() => {
-    sourceItems.forEach((item) => {
-      if (item.link) {
-        void preloadImage(item.link);
-      }
-    });
-  }, [sourceItems]);
+    if (!active || !activeItem?.link) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      void preloadImage(activeItem.link);
+    }, 240);
+
+    return () => window.clearTimeout(timer);
+  }, [active, activeItem?.link]);
 
   const openViewer = async () => {
     const canvas = canvasRef.current;
