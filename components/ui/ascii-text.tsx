@@ -605,6 +605,7 @@ export type ASCIITextProps = {
   active?: boolean;
   animated?: boolean;
   maxFps?: number;
+  renderWhenPaused?: boolean;
 };
 
 export function ASCIIText({
@@ -621,6 +622,7 @@ export function ASCIIText({
   active = true,
   animated = true,
   maxFps = 20,
+  renderWhenPaused = true,
 }: ASCIITextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const asciiRef = useRef<CanvasAscii | null>(null);
@@ -631,18 +633,18 @@ export function ASCIIText({
   useEffect(() => {
     latestText.current = text;
     asciiRef.current?.setText(text);
-    if (!animated || !active) {
+    if (active ? !animated : renderWhenPaused) {
       asciiRef.current?.render(performance.now());
     }
-  }, [active, animated, text]);
+  }, [active, animated, renderWhenPaused, text]);
 
   useEffect(() => {
     latestAnchorText.current = anchorText;
     asciiRef.current?.setAnchorText(anchorText);
-    if (!animated || !active) {
+    if (active ? !animated : renderWhenPaused) {
       asciiRef.current?.render(performance.now());
     }
-  }, [active, animated, anchorText]);
+  }, [active, animated, renderWhenPaused, anchorText]);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -684,7 +686,7 @@ export function ASCIIText({
       instance.setAnchorText(latestAnchorText.current);
       asciiRef.current = instance;
       instance.load(animated && active && document.visibilityState !== "hidden");
-      if (!animated || !active) {
+      if (active ? !animated : renderWhenPaused) {
         instance.render(performance.now());
       }
 
@@ -697,7 +699,7 @@ export function ASCIIText({
           if (w > 0 && h > 0) {
             const applySize = () => {
               asciiRef.current?.setSize(w, h);
-              if (!animated || !active) {
+              if (active ? !animated : renderWhenPaused) {
                 asciiRef.current?.render(performance.now());
               }
               resizeTimeout.current = null;
@@ -741,6 +743,7 @@ export function ASCIIText({
     textFontSize,
     animated,
     maxFps,
+    renderWhenPaused,
   ]);
 
   useEffect(() => {
@@ -749,7 +752,9 @@ export function ASCIIText({
         asciiRef.current?.resume();
       } else {
         asciiRef.current?.pause();
-        asciiRef.current?.render(performance.now());
+        if (active ? !animated : renderWhenPaused) {
+          asciiRef.current?.render(performance.now());
+        }
       }
     };
 
@@ -757,7 +762,7 @@ export function ASCIIText({
     document.addEventListener("visibilitychange", syncActivity);
 
     return () => document.removeEventListener("visibilitychange", syncActivity);
-  }, [active, animated]);
+  }, [active, animated, renderWhenPaused]);
 
   return (
     <div
@@ -769,6 +774,7 @@ export function ASCIIText({
       data-render-active={active ? "true" : "false"}
       data-render-animated={animated ? "true" : "false"}
       data-render-max-fps={maxFps}
+      data-render-when-paused={renderWhenPaused ? "true" : "false"}
       data-resize-mode={resizeMode}
       ref={containerRef}
     />

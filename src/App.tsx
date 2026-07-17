@@ -490,7 +490,7 @@ function App() {
   const [isCompact, setIsCompact] = useState(false);
   const [isMobilePerformanceMode, setIsMobilePerformanceMode] = useState(() => detectMobilePerformanceMode());
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-  const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "120px", activeMargin: "80px" });
+  const heroGate = useViewportGate<HTMLElement>({ preloadMargin: "420px", activeMargin: "240px" });
   const worksGate = useViewportGate<HTMLElement>({
     preloadMargin: isMobilePerformanceMode ? "360px" : "680px",
     activeMargin: "160px",
@@ -652,9 +652,10 @@ function App() {
                         alignMode={asciiTitle.baseAlignMode}
                         resizeMode="debounced"
                         enableWaves
-                        active={heroGate.isActive}
-                        animated={heroGate.isActive}
-                        maxFps={5}
+                        active={heroGate.isNear}
+                        animated
+                        maxFps={10}
+                        renderWhenPaused={false}
                       />
                     </span>
                     {asciiTitle.accentText ? (
@@ -671,9 +672,10 @@ function App() {
                           alignMode="layout"
                           resizeMode="debounced"
                           enableWaves={false}
-                          active={heroGate.isActive}
+                          active={heroGate.isNear}
                           animated={false}
                           maxFps={3}
+                          renderWhenPaused={false}
                         />
                       </span>
                     ) : null}
