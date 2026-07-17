@@ -955,9 +955,10 @@ html[data-background-interaction="true"] .archive-field {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(260px, 0.48fr) minmax(320px, 0.52fr);
+  grid-template-columns: max-content minmax(300px, 39ch);
   align-items: end;
-  gap: clamp(24px, 4vw, 72px);
+  justify-content: space-between;
+  gap: clamp(30px, 5vw, 92px);
   width: min(1200px, 100%);
   margin: 0 auto;
 }
@@ -977,16 +978,17 @@ html[data-background-interaction="true"] .archive-field {
   margin: 0;
   color: var(--bone);
   font-family: var(--font-display);
-  font-size: clamp(4.6rem, 7.1vw, 8.4rem);
+  font-size: clamp(4.65rem, 5.8vw, 7.05rem);
   font-weight: 400;
-  line-height: 0.8;
+  line-height: 0.86;
   letter-spacing: 0;
+  white-space: nowrap;
   text-shadow: 0 0 34px rgb(147 243 255 / 0.16);
 }
 
 .chroma-about-copy p {
-  max-width: 44ch;
-  margin: 0 0 0.22rem;
+  max-width: 39ch;
+  margin: 0 0 0.72rem;
   color: rgb(243 238 230 / 0.66);
   font-size: clamp(0.92rem, 1.08vw, 1.08rem);
   font-weight: 650;
@@ -1862,6 +1864,7 @@ html[data-background-interaction="true"] .archive-field {
   .chroma-about-copy {
     grid-template-columns: 1fr;
     gap: 14px;
+    justify-content: stretch;
   }
 
   .chroma-about-copy p {
@@ -1971,6 +1974,7 @@ html[data-background-interaction="true"] .archive-field {
 
   .chroma-about-copy h2 {
     font-size: clamp(4.35rem, 22vw, 6.4rem);
+    white-space: normal;
   }
 
   .chroma-about-copy span {

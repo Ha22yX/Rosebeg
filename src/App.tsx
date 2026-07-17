@@ -654,6 +654,7 @@ function App() {
                         enableWaves
                         active={heroGate.isActive}
                         animated={heroGate.isActive}
+                        maxFps={5}
                       />
                     </span>
                     {asciiTitle.accentText ? (
@@ -672,6 +673,7 @@ function App() {
                           enableWaves={false}
                           active={heroGate.isActive}
                           animated={false}
+                          maxFps={3}
                         />
                       </span>
                     ) : null}

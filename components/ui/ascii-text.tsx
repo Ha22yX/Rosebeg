@@ -38,7 +38,6 @@ void main() {
 }
 `;
 
-const ASCII_TARGET_FRAME_MS = 1000 / 20;
 const ASCII_MIN_CELL_PX = 4;
 const ASCII_ALPHA_CUTOFF = 18;
 const ASCII_FONT_FAMILY =
@@ -605,6 +604,7 @@ export type ASCIITextProps = {
   resizeMode?: "responsive" | "debounced" | "initial";
   active?: boolean;
   animated?: boolean;
+  maxFps?: number;
 };
 
 export function ASCIIText({
@@ -620,6 +620,7 @@ export function ASCIIText({
   resizeMode = "responsive",
   active = true,
   animated = true,
+  maxFps = 20,
 }: ASCIITextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const asciiRef = useRef<CanvasAscii | null>(null);
@@ -654,6 +655,7 @@ export function ASCIIText({
 
     const setup = async () => {
       const { width, height } = container.getBoundingClientRect();
+      const targetFrameMs = Math.max(1000 / 60, 1000 / Math.max(1, maxFps));
       const instance = new CanvasAscii(
         {
           text: latestText.current,
@@ -665,7 +667,7 @@ export function ASCIIText({
           planeBaseHeight,
           enableWaves,
           alignMode,
-          targetFrameMs: ASCII_TARGET_FRAME_MS,
+          targetFrameMs,
         },
         container,
         width || 1,
@@ -738,6 +740,7 @@ export function ASCIIText({
     textColor,
     textFontSize,
     animated,
+    maxFps,
   ]);
 
   useEffect(() => {
@@ -765,6 +768,7 @@ export function ASCIIText({
       data-anchor-text={anchorText}
       data-render-active={active ? "true" : "false"}
       data-render-animated={animated ? "true" : "false"}
+      data-render-max-fps={maxFps}
       data-resize-mode={resizeMode}
       ref={containerRef}
     />
