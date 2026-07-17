@@ -13,37 +13,27 @@ Motion, Three.js ASCII text, and a shader-based background system.
 
 <table>
   <tr>
-    <td colspan="2">
+    <td width="50%">
       <img src="docs/readme/rosebeg-hero.png" alt="Rosebeg opening screen with the Welcome to Rosebeg title" />
     </td>
-  </tr>
-  <tr>
-    <td colspan="2"><strong>Opening screen.</strong> The site starts with the Rosebeg identity and ASCII-style title sequence.</td>
-  </tr>
-</table>
-
-<table>
-  <tr>
     <td width="50%">
       <img src="docs/readme/rosebeg-identity.png" alt="Rosebeg identity section showing Developer, Researcher, Photographer, and Designer cards" />
     </td>
+  </tr>
+  <tr>
+    <td><strong>Opening screen.</strong> The site starts with the Rosebeg identity and ASCII-style title sequence.</td>
+    <td><strong>Identity section.</strong> Four parts of my work are shown as one personal system: developer, researcher, photographer, and designer.</td>
+  </tr>
+  <tr>
     <td width="50%">
       <img src="docs/readme/rosebeg-code-works.png" alt="Rosebeg selected code works section with stacked project windows" />
     </td>
-  </tr>
-  <tr>
-    <td><strong>Identity section.</strong> Four parts of my work are shown as one personal system: developer, researcher, photographer, and designer.</td>
-    <td><strong>Selected code works.</strong> Projects are presented as an interactive archive rather than a plain link list.</td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td>
+    <td width="50%">
       <img src="docs/readme/rosebeg-signal-ports.png" alt="Rosebeg signal ports contact section with GitHub, WeChat, Instagram, and Email links" />
     </td>
   </tr>
   <tr>
+    <td><strong>Selected code works.</strong> Projects are presented as an interactive archive rather than a plain link list.</td>
     <td><strong>Signal ports.</strong> Public contact channels are designed as part of the Rosebeg interface language.</td>
   </tr>
 </table>
