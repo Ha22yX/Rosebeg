@@ -135,7 +135,6 @@ const lightboxThumbnailRevealMs = 460;
 const lightboxUnmountDelayMs = 760;
 const infiniteMenuTargetFrameMs = 1000 / 60;
 const infiniteMenuMaxPixelRatio = 1.35;
-const dragIntroStorageKey = "rosebeg.photos.dragIntroSeen";
 
 function preloadImage(src: string) {
   if (!imageDecodeCache.has(src)) {
@@ -1518,28 +1517,11 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
       return undefined;
     }
 
-    let introSeen = false;
-    try {
-      introSeen = window.sessionStorage.getItem(dragIntroStorageKey) === "true";
-    } catch {
-      introSeen = false;
-    }
-
-    if (introSeen) {
-      return undefined;
-    }
-
-    try {
-      window.sessionStorage.setItem(dragIntroStorageKey, "true");
-    } catch {
-      // Session storage is only used to avoid repeating the cue during one visit.
-    }
-
     setDragIntroActive(true);
     dragIntroTimerRef.current = window.setTimeout(() => {
       setDragIntroActive(false);
       dragIntroTimerRef.current = null;
-    }, 1400);
+    }, 2200);
 
     return () => {
       if (dragIntroTimerRef.current) {
