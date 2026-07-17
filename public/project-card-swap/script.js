@@ -1097,7 +1097,14 @@ class CardSwap {
     this.lastWheelDirection = 0;
     this.lastWheelAt = 0;
     this.wheelBurst = 0;
+    this.wheelRaf = 0;
+    this.queuedWheelDelta = 0;
+    this.queuedWheelMagnitude = 0;
+    this.queuedWheelMode = WheelEvent.DOM_DELTA_PIXEL;
     this.wheelSettleTimer = null;
+    this.hoverRaf = 0;
+    this.stackHitBounds = null;
+    this.stackHitBoundsAt = 0;
     this.frameMotion = new WeakMap();
     this.frameTweens = new WeakMap();
     this.reboundTweens = new WeakMap();
@@ -1187,6 +1194,8 @@ class CardSwap {
     this.timeline?.kill();
     this.clearScheduledSwap();
     window.cancelAnimationFrame(this.progressFrame);
+    window.cancelAnimationFrame(this.wheelRaf);
+    window.cancelAnimationFrame(this.hoverRaf);
     window.removeEventListener("pointermove", this.handlePointerMove);
     window.removeEventListener("pointerleave", this.handlePointerLeave);
     window.removeEventListener("blur", this.handlePointerLeave);
@@ -1233,7 +1242,63 @@ class CardSwap {
 
   onPointerMove(event) {
     this.lastPointer = { x: event.clientX, y: event.clientY };
-    this.syncHoverPauseFromPointer({ schedule: true });
+
+    if (!this.hoverRaf) {
+      this.hoverRaf = window.requestAnimationFrame(() => {
+        this.hoverRaf = 0;
+        this.syncHoverPauseFromPointer({ schedule: true });
+      });
+    }
+  }
+
+  getStackHitBounds() {
+    const now = performance.now();
+    if (this.stackHitBounds && now - this.stackHitBoundsAt < 90) {
+      return this.stackHitBounds;
+    }
+
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+
+    this.cards.forEach((card) => {
+      if (card.classList.contains("is-virtual-hidden")) return;
+
+      const target = this.getFrame(card) ?? card;
+      const rect = target.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      left = Math.min(left, rect.left);
+      top = Math.min(top, rect.top);
+      right = Math.max(right, rect.right);
+      bottom = Math.max(bottom, rect.bottom);
+    });
+
+    if (!Number.isFinite(left)) {
+      this.stackHitBounds = null;
+      return null;
+    }
+
+    const padding = 72;
+    this.stackHitBounds = {
+      left: left - padding,
+      top: top - padding,
+      right: right + padding,
+      bottom: bottom + padding
+    };
+    this.stackHitBoundsAt = now;
+
+    return this.stackHitBounds;
+  }
+
+  isPointOverCardStackFast(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+
+    const bounds = this.getStackHitBounds();
+    if (!bounds) return false;
+
+    return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
   }
 
   isPointOverCardStack(x, y) {
@@ -1260,12 +1325,13 @@ class CardSwap {
     }
   }
 
-  syncHoverPauseFromPointer({ schedule = false } = {}) {
+  syncHoverPauseFromPointer({ schedule = false, knownShouldPause = null } = {}) {
     const frontCard = this.cards[this.order[0]];
     const hasPointer = Number.isFinite(this.lastPointer.x) && Number.isFinite(this.lastPointer.y);
-    const shouldPause = hasPointer
-      ? this.isPointOverCardStack(this.lastPointer.x, this.lastPointer.y)
-      : this.pointerOverStack || Boolean(frontCard?.matches(":hover"));
+    const shouldPause = knownShouldPause ?? (hasPointer
+      ? this.isPointOverCardStackFast(this.lastPointer.x, this.lastPointer.y)
+      : this.pointerOverStack || Boolean(frontCard?.matches(":hover"))
+    );
 
     this.pointerOverStack = shouldPause;
     this.hoverPaused = shouldPause;
@@ -1289,13 +1355,51 @@ class CardSwap {
     if (this.expandedCard) return;
 
     this.lastPointer = { x: event.clientX, y: event.clientY };
-    if (!this.isPointOverCardStack(event.clientX, event.clientY)) return;
+    if (!this.isPointOverCardStackFast(event.clientX, event.clientY)) return;
 
     event.preventDefault();
     event.stopPropagation();
-    this.syncHoverPauseFromPointer();
+    this.syncHoverPauseFromPointer({ knownShouldPause: true });
 
     const delta = event.deltaY || event.deltaX;
+    if (Math.abs(delta) < 2) return;
+
+    const rawDirection = delta > 0 ? 1 : -1;
+    const now = performance.now();
+    this.wheelBurst = now - this.lastWheelAt < 180 ? Math.min(1, this.wheelBurst + 0.22) : 0;
+    this.lastWheelAt = now;
+
+    if (this.lastWheelDirection && this.lastWheelDirection !== rawDirection) {
+      this.wheelAccumulator = 0;
+      this.queuedWheelDelta = 0;
+      this.queuedWheelMagnitude = 0;
+    }
+
+    this.lastWheelDirection = rawDirection;
+    this.queuedWheelDelta += delta;
+    this.queuedWheelMagnitude += Math.abs(delta);
+    this.queuedWheelMode = event.deltaMode;
+
+    if (!this.wheelRaf) {
+      this.wheelRaf = window.requestAnimationFrame(() => this.flushWheelInput());
+    }
+  }
+
+  flushWheelInput() {
+    this.wheelRaf = 0;
+
+    if (this.isDestroyed || this.expandedCard) {
+      this.queuedWheelDelta = 0;
+      this.queuedWheelMagnitude = 0;
+      return;
+    }
+
+    const delta = this.queuedWheelDelta;
+    const magnitude = this.queuedWheelMagnitude;
+    const deltaMode = this.queuedWheelMode;
+    this.queuedWheelDelta = 0;
+    this.queuedWheelMagnitude = 0;
+
     if (Math.abs(delta) < 2) return;
 
     this.container.dispatchEvent(
@@ -1306,26 +1410,17 @@ class CardSwap {
     );
 
     const rawDirection = delta > 0 ? 1 : -1;
-    const now = performance.now();
-    this.wheelBurst = now - this.lastWheelAt < 180 ? Math.min(1, this.wheelBurst + 0.22) : 0;
-    this.lastWheelAt = now;
-
-    if (this.lastWheelDirection && this.lastWheelDirection !== rawDirection) {
-      this.wheelAccumulator = 0;
-    }
-
-    this.lastWheelDirection = rawDirection;
-    const threshold = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? 70 : 1;
+    const threshold = deltaMode === WheelEvent.DOM_DELTA_PIXEL ? 78 : 1;
     const absDelta = Math.abs(delta);
     let direction = rawDirection;
     let steps = 0;
 
-    this.applyWheelTension(direction, Math.abs(delta), this.wheelBurst);
+    this.applyWheelTension(direction, magnitude, this.wheelBurst);
     window.clearTimeout(this.wheelSettleTimer);
     this.wheelSettleTimer = window.setTimeout(() => this.settleWheelTension(), 150);
 
     if (absDelta >= threshold) {
-      steps = Math.min(3, Math.max(1, Math.round(absDelta / threshold)));
+      steps = Math.min(2, Math.max(1, Math.round(absDelta / threshold)));
       this.wheelAccumulator = 0;
     } else {
       this.wheelAccumulator += delta;
@@ -1688,11 +1783,11 @@ class CardSwap {
     this.container.dataset.targetProgress = this.targetProgress.toFixed(4);
     this.clearScheduledSwap();
     this.clearArrivalRebound();
-    this.renderProgress(this.currentProgress);
 
     if (!this.progressFrame) {
       this.isAnimating = true;
       this.progressLastTime = performance.now();
+      this.renderProgress(this.currentProgress);
       this.progressFrame = window.requestAnimationFrame(this.handleProgressFrame);
     }
   }
