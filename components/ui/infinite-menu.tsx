@@ -135,6 +135,8 @@ const lightboxThumbnailRevealMs = 460;
 const lightboxUnmountDelayMs = 760;
 const infiniteMenuTargetFrameMs = 1000 / 45;
 const infiniteMenuMaxPixelRatio = 1.35;
+const dragHintStorageKey = "rosebeg.photos.dragHintDismissed";
+const dragIntroStorageKey = "rosebeg.photos.dragIntroSeen";
 
 function preloadImage(src: string) {
   if (!imageDecodeCache.has(src)) {
@@ -1360,8 +1362,22 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   const [viewerExpanded, setViewerExpanded] = useState(false);
   const [viewerClosing, setViewerClosing] = useState(false);
   const [actionButtonState, setActionButtonState] = useState<"idle" | "hover" | "press">("idle");
+  const [dragHintDismissed, setDragHintDismissed] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    try {
+      return window.localStorage.getItem(dragHintStorageKey) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [dragIntroActive, setDragIntroActive] = useState(false);
   const actionButtonScaleFrameRef = useRef<number | null>(null);
   const actionButtonScaleValueRef = useRef(-300);
+  const dragIntroTimerRef = useRef<number | null>(null);
+  const dragGestureRef = useRef<{ pointerId: number; x: number; y: number; dismissed: boolean } | null>(null);
   const [actionButtonDistortionScale, setActionButtonDistortionScale] = useState(-300);
   const sourceItems = items.length ? items : defaultItems;
   const initialItemIndexRef = useRef<number | null>(null);
@@ -1370,6 +1386,17 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   }
   const initialItemIndex = initialItemIndexRef.current;
   const actionButtonTargetDistortionScale = actionButtonState === "idle" ? -300 : 300;
+
+  const dismissDragHint = useCallback(() => {
+    setDragHintDismissed(true);
+    setDragIntroActive(false);
+
+    try {
+      window.localStorage.setItem(dragHintStorageKey, "true");
+    } catch {
+      // Ignore private-mode storage failures; the visual hint can simply return next visit.
+    }
+  }, []);
 
   const getCurrentViewerOrigin = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1502,6 +1529,42 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
       }
     };
   }, [actionButtonTargetDistortionScale]);
+
+  useEffect(() => {
+    if (!active || dragHintDismissed) {
+      return undefined;
+    }
+
+    let introSeen = false;
+    try {
+      introSeen = window.sessionStorage.getItem(dragIntroStorageKey) === "true";
+    } catch {
+      introSeen = false;
+    }
+
+    if (introSeen) {
+      return undefined;
+    }
+
+    try {
+      window.sessionStorage.setItem(dragIntroStorageKey, "true");
+    } catch {
+      // Session storage is only used to avoid repeating the cue during one visit.
+    }
+
+    setDragIntroActive(true);
+    dragIntroTimerRef.current = window.setTimeout(() => {
+      setDragIntroActive(false);
+      dragIntroTimerRef.current = null;
+    }, 1400);
+
+    return () => {
+      if (dragIntroTimerRef.current) {
+        window.clearTimeout(dragIntroTimerRef.current);
+        dragIntroTimerRef.current = null;
+      }
+    };
+  }, [active, dragHintDismissed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1697,12 +1760,16 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
       if (revealTimerRef.current) {
         window.clearTimeout(revealTimerRef.current);
       }
+      if (dragIntroTimerRef.current) {
+        window.clearTimeout(dragIntroTimerRef.current);
+      }
       sketchRef.current?.setHiddenInstanceIndex(null);
     };
   }, []);
 
   const isViewerHoldingMenu = Boolean(viewer && !viewerClosing);
   const isViewerLockingCanvas = Boolean(viewer);
+  const showDragHint = Boolean(activeItem && active && !dragHintDismissed && !isMoving && !isViewerHoldingMenu);
   const lightboxClassName = [
     "photo-lightbox",
     viewerExpanded && !viewerClosing ? "is-expanded" : "",
@@ -1718,12 +1785,39 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
       data-initial-index={initialItemIndex}
       data-moving={isMoving ? "true" : "false"}
       data-viewer-lock={isViewerLockingCanvas ? "true" : "false"}
+      data-drag-intro={dragIntroActive ? "true" : "false"}
     >
       <canvas
         id="infinite-grid-menu-canvas"
         ref={canvasRef}
         aria-label="Photography menu"
         data-render-active={active ? "true" : "false"}
+        onPointerDown={(event) => {
+          dragGestureRef.current = {
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            dismissed: false,
+          };
+        }}
+        onPointerMove={(event) => {
+          const gesture = dragGestureRef.current;
+          if (!gesture || gesture.pointerId !== event.pointerId || gesture.dismissed) {
+            return;
+          }
+
+          const distance = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
+          if (distance > 8) {
+            gesture.dismissed = true;
+            dismissDragHint();
+          }
+        }}
+        onPointerUp={() => {
+          dragGestureRef.current = null;
+        }}
+        onPointerCancel={() => {
+          dragGestureRef.current = null;
+        }}
       />
 
       {activeItem && (
@@ -1768,6 +1862,9 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
               </span>
             </GlassSurface>
           </button>
+          <div className={`drag-affordance ${showDragHint ? "active" : "inactive"}`} aria-hidden="true">
+            hold + drag
+          </div>
         </>
       )}
 
