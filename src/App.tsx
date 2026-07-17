@@ -688,8 +688,14 @@ function App() {
             data-archive-section="who"
           >
             <div className="chroma-about-copy">
-              <span>Signal identity</span>
-              <h2 id="who-title">Who I Am</h2>
+              <div>
+                <span>Signal identity</span>
+                <h2 id="who-title">Who I Am</h2>
+              </div>
+              <p>
+                Four identities, one signal: systems that work, research that moves, photographs
+                that notice, and interfaces that feel intentional.
+              </p>
             </div>
             <div className="chroma-about-stage">
               <ChromaGrid

@@ -873,9 +873,9 @@ function isExternalHref(href: string) {
 
 export function SocialSignalPorts({
   id = "social",
-  title = "Connect",
-  tagline = "GitHub, WeChat, Instagram, and Email mounted on a retro identity drive.",
-  body = "Choose a channel to open a public profile, view field images, or send a direct message.",
+  title = "Signal Ports",
+  tagline = "GitHub for code, Instagram for field images, WeChat for quick messages, and email for conversations that need care.",
+  body = "Open a channel for collaboration, admissions conversations, portfolio questions, or project inquiries.",
   ports = defaultSignalPorts,
 }: SocialSignalPortsProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);

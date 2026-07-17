@@ -918,13 +918,13 @@ html[data-background-interaction="true"] .archive-field {
 }
 
 .chroma-about-panel {
-  width: min(1420px, calc(100% - 28px));
+  width: min(1360px, calc(100% - 36px));
   min-height: auto;
   display: grid;
   grid-template-columns: 1fr;
   align-content: center;
-  gap: clamp(14px, 1.45vw, 24px);
-  padding-block: clamp(36px, 3.1vw, 58px);
+  gap: clamp(24px, 2.45vw, 42px);
+  padding-block: clamp(72px, 7vw, 118px);
   isolation: isolate;
 }
 
@@ -932,13 +932,14 @@ html[data-background-interaction="true"] .archive-field {
   content: "";
   position: absolute;
   z-index: 0;
-  inset: clamp(8px, 1.4vw, 22px) max(-6vw, -110px) clamp(6px, 1.2vw, 18px);
+  inset: clamp(18px, 2.4vw, 42px) max(-5.2vw, -90px) clamp(18px, 2.4vw, 42px);
   pointer-events: none;
+  border-radius: clamp(30px, 3.2vw, 58px);
   background:
-    radial-gradient(ellipse 76% 66% at 52% 48%, rgb(147 243 255 / 0.065), transparent 73%),
-    radial-gradient(ellipse 42% 40% at 22% 72%, rgb(216 165 53 / 0.045), transparent 76%),
-    radial-gradient(ellipse 46% 42% at 82% 28%, rgb(139 92 246 / 0.06), transparent 74%),
-    linear-gradient(105deg, rgb(2 3 7 / 0.72), rgb(6 8 12 / 0.58) 56%, rgb(218 203 225 / 0.07));
+    radial-gradient(ellipse 64% 38% at 46% 26%, rgb(147 243 255 / 0.035), transparent 74%),
+    radial-gradient(ellipse 76% 62% at 52% 58%, rgb(0 0 0 / 0.34), transparent 76%),
+    radial-gradient(ellipse 52% 48% at 78% 76%, rgb(139 92 246 / 0.06), transparent 78%),
+    linear-gradient(105deg, rgb(2 3 7 / 0.52), rgb(6 8 12 / 0.42) 56%, rgb(218 203 225 / 0.035));
   -webkit-mask-image:
     linear-gradient(to right, transparent, rgb(0 0 0 / 0.15) 5%, #000 15%, #000 85%, rgb(0 0 0 / 0.15) 95%, transparent),
     linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.18) 5%, #000 14%, #000 84%, rgb(0 0 0 / 0.16) 94%, transparent);
@@ -947,13 +948,17 @@ html[data-background-interaction="true"] .archive-field {
     linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.18) 5%, #000 14%, #000 84%, rgb(0 0 0 / 0.16) 94%, transparent);
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
-  filter: blur(1.5px);
+  filter: blur(2px);
 }
 
 .chroma-about-copy {
   position: relative;
   z-index: 1;
-  width: min(1240px, 100%);
+  display: grid;
+  grid-template-columns: minmax(260px, 0.48fr) minmax(320px, 0.52fr);
+  align-items: end;
+  gap: clamp(24px, 4vw, 72px);
+  width: min(1200px, 100%);
   margin: 0 auto;
 }
 
@@ -972,11 +977,21 @@ html[data-background-interaction="true"] .archive-field {
   margin: 0;
   color: var(--bone);
   font-family: var(--font-display);
-  font-size: clamp(4.25rem, 5.9vw, 6.8rem);
+  font-size: clamp(4.6rem, 7.1vw, 8.4rem);
   font-weight: 400;
   line-height: 0.8;
   letter-spacing: 0;
   text-shadow: 0 0 34px rgb(147 243 255 / 0.16);
+}
+
+.chroma-about-copy p {
+  max-width: 44ch;
+  margin: 0 0 0.22rem;
+  color: rgb(243 238 230 / 0.66);
+  font-size: clamp(0.92rem, 1.08vw, 1.08rem);
+  font-weight: 650;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .chroma-about-stage {
@@ -1051,8 +1066,8 @@ html[data-background-interaction="true"] .archive-field {
   display: block;
   border: 0;
   background: transparent;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 5%, #000 calc(100% - 250px), rgb(0 0 0 / 0.72) calc(100% - 160px), transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 5%, #000 calc(100% - 250px), rgb(0 0 0 / 0.72) calc(100% - 160px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 5%, #000 calc(100% - 360px), rgb(0 0 0 / 0.84) calc(100% - 240px), rgb(0 0 0 / 0.36) calc(100% - 90px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 5%, #000 calc(100% - 360px), rgb(0 0 0 / 0.84) calc(100% - 240px), rgb(0 0 0 / 0.36) calc(100% - 90px), transparent 100%);
 }
 
 .performance-placeholder {
@@ -1844,6 +1859,15 @@ html[data-background-interaction="true"] .archive-field {
     padding-block: 96px;
   }
 
+  .chroma-about-copy {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .chroma-about-copy p {
+    max-width: 34ch;
+  }
+
   .chroma-about-panel::before {
     inset: 36px -18px 20px;
   }
@@ -1946,11 +1970,16 @@ html[data-background-interaction="true"] .archive-field {
   }
 
   .chroma-about-copy h2 {
-    font-size: clamp(5.2rem, 29vw, 7.2rem);
+    font-size: clamp(4.35rem, 22vw, 6.4rem);
   }
 
   .chroma-about-copy span {
     font-size: 0.68rem;
+  }
+
+  .chroma-about-copy p {
+    font-size: 0.9rem;
+    line-height: 1.48;
   }
 
   .photography-panel {
