@@ -409,7 +409,7 @@ function getAsciiRenderConfig(targetText: string, compact: boolean) {
   if (compact) {
     return {
       layoutText: compactAsciiLayoutTitle,
-      asciiFontSize: 3,
+      asciiFontSize: 4,
       planeBaseHeight: 11.6,
     };
   }
@@ -417,7 +417,7 @@ function getAsciiRenderConfig(targetText: string, compact: boolean) {
   if (targetText === "A personal portfolio by HarryX") {
     return {
       layoutText: "A personal portfolio by HarryX",
-      asciiFontSize: 4,
+      asciiFontSize: 5,
       planeBaseHeight: 5.2,
     };
   }
@@ -425,14 +425,14 @@ function getAsciiRenderConfig(targetText: string, compact: boolean) {
   if (targetText.startsWith("I am a ")) {
     return {
       layoutText: roleAsciiAnchor,
-      asciiFontSize: 4,
+      asciiFontSize: 5,
       planeBaseHeight: 9.4,
     };
   }
 
   return {
     layoutText: targetText || "This is Rosebeg",
-    asciiFontSize: 4,
+    asciiFontSize: 5,
     planeBaseHeight: 9.4,
   };
 }
@@ -526,28 +526,6 @@ function App() {
       reducedMotionMedia.removeEventListener("change", sync);
     };
   }, []);
-
-  useEffect(() => {
-    if (isMobilePerformanceMode) {
-      return undefined;
-    }
-
-    const preload = () => {
-      void loadInfiniteMenu();
-    };
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    if (idleWindow.requestIdleCallback) {
-      const idleHandle = idleWindow.requestIdleCallback(preload, { timeout: 1800 });
-      return () => idleWindow.cancelIdleCallback?.(idleHandle);
-    }
-
-    const timer = window.setTimeout(preload, 900);
-    return () => window.clearTimeout(timer);
-  }, [isMobilePerformanceMode]);
 
   useEffect(() => {
     if (!isMobilePerformanceMode) {
@@ -675,7 +653,7 @@ function App() {
                         alignMode={asciiTitle.baseAlignMode}
                         resizeMode="debounced"
                         enableWaves
-                        active={heroGate.isNear}
+                        active={heroGate.isActive}
                         animated
                         maxFps={10}
                         renderWhenPaused={false}
@@ -695,7 +673,7 @@ function App() {
                           alignMode="layout"
                           resizeMode="debounced"
                           enableWaves
-                          active={heroGate.isNear}
+                          active={heroGate.isActive}
                           animated
                           maxFps={10}
                           renderWhenPaused={false}
@@ -765,16 +743,12 @@ function App() {
             data-archive-section="photos"
           >
             <div className="photography-lens-frame" data-lens-frame aria-hidden="true" />
-            {photosGate.isNear ? (
-              isMobilePerformanceMode ? (
-                <MobilePhotoGallery items={photographyItems} />
-              ) : (
-                <Suspense fallback={<PerformancePlaceholder label="Photography field preloading" kind="photos" />}>
-                  <InfiniteMenu items={photographyItems} scale={1} active={photosGate.isActive} />
-                </Suspense>
-              )
+            {isMobilePerformanceMode ? (
+              <MobilePhotoGallery items={photographyItems} />
             ) : (
-              <PerformancePlaceholder label="Photography field preloading" kind="photos" />
+              <Suspense fallback={<PerformancePlaceholder label="Photography field preloading" kind="photos" />}>
+                <InfiniteMenu items={photographyItems} scale={1} active={photosGate.isActive} />
+              </Suspense>
             )}
           </section>
 
