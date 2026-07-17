@@ -133,7 +133,7 @@ const imageDecodeCache = new Map<string, Promise<void>>();
 const lightboxThumbnailRevealDelayMs = 120;
 const lightboxThumbnailRevealMs = 460;
 const lightboxUnmountDelayMs = 760;
-const infiniteMenuTargetFrameMs = 1000 / 45;
+const infiniteMenuTargetFrameMs = 1000 / 60;
 const infiniteMenuMaxPixelRatio = 1.35;
 const dragIntroStorageKey = "rosebeg.photos.dragIntroSeen";
 

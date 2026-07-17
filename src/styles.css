@@ -1639,20 +1639,21 @@ html[data-background-interaction="true"] .archive-field {
 .drag-affordance {
   position: absolute;
   left: 50%;
-  bottom: 2.05em;
-  z-index: 2;
+  top: calc(50% + clamp(70px, 13vmin, 140px));
+  z-index: 5;
   transform: translateX(-50%);
   user-select: none;
-  color: rgb(141 249 255 / 0.52);
+  color: rgb(141 249 255 / 0.36);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: clamp(0.8rem, 1vw, 1.05rem);
   font-weight: 850;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.34em;
   line-height: 1;
   text-transform: uppercase;
   text-shadow:
-    0 0 16px rgb(141 249 255 / 0.32),
-    0 5px 20px rgb(0 0 0 / 0.72);
+    0 0 20px rgb(141 249 255 / 0.22),
+    0 7px 24px rgb(0 0 0 / 0.62);
+  mix-blend-mode: screen;
   pointer-events: none;
   will-change: opacity, transform;
 }
@@ -1665,9 +1666,9 @@ html[data-background-interaction="true"] .archive-field {
   width: 18px;
   height: 1px;
   background: currentColor;
-  opacity: 0.42;
+  opacity: 0.34;
   transform: translateY(-50%);
-  box-shadow: 0 0 10px rgb(141 249 255 / 0.32);
+  box-shadow: 0 0 12px rgb(141 249 255 / 0.22);
 }
 
 .drag-affordance::before {
@@ -1723,12 +1724,12 @@ html[data-background-interaction="true"] .archive-field {
 @keyframes photo-drag-hint-pulse {
   0%,
   100% {
-    opacity: 0.3;
+    opacity: 0.2;
     transform: translateX(-50%) translateY(2px);
   }
 
   42% {
-    opacity: 0.5;
+    opacity: 0.38;
     transform: translateX(-50%) translateY(0);
   }
 }
