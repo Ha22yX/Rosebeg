@@ -135,7 +135,6 @@ const lightboxThumbnailRevealMs = 460;
 const lightboxUnmountDelayMs = 760;
 const infiniteMenuTargetFrameMs = 1000 / 45;
 const infiniteMenuMaxPixelRatio = 1.35;
-const dragHintStorageKey = "rosebeg.photos.dragHintDismissed";
 const dragIntroStorageKey = "rosebeg.photos.dragIntroSeen";
 
 function preloadImage(src: string) {
@@ -1362,17 +1361,7 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   const [viewerExpanded, setViewerExpanded] = useState(false);
   const [viewerClosing, setViewerClosing] = useState(false);
   const [actionButtonState, setActionButtonState] = useState<"idle" | "hover" | "press">("idle");
-  const [dragHintDismissed, setDragHintDismissed] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    try {
-      return window.localStorage.getItem(dragHintStorageKey) === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [dragHintDismissed, setDragHintDismissed] = useState(false);
   const [dragIntroActive, setDragIntroActive] = useState(false);
   const actionButtonScaleFrameRef = useRef<number | null>(null);
   const actionButtonScaleValueRef = useRef(-300);
@@ -1390,12 +1379,6 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   const dismissDragHint = useCallback(() => {
     setDragHintDismissed(true);
     setDragIntroActive(false);
-
-    try {
-      window.localStorage.setItem(dragHintStorageKey, "true");
-    } catch {
-      // Ignore private-mode storage failures; the visual hint can simply return next visit.
-    }
   }, []);
 
   const getCurrentViewerOrigin = useCallback(() => {
@@ -1769,7 +1752,7 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
 
   const isViewerHoldingMenu = Boolean(viewer && !viewerClosing);
   const isViewerLockingCanvas = Boolean(viewer);
-  const showDragHint = Boolean(activeItem && active && !dragHintDismissed && !isMoving && !isViewerHoldingMenu);
+  const showDragHint = Boolean(activeItem && active && !dragHintDismissed && !viewer && !viewerClosing && !isViewerHoldingMenu);
   const lightboxClassName = [
     "photo-lightbox",
     viewerExpanded && !viewerClosing ? "is-expanded" : "",

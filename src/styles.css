@@ -1639,22 +1639,43 @@ html[data-background-interaction="true"] .archive-field {
 .drag-affordance {
   position: absolute;
   left: 50%;
-  bottom: 1.9em;
+  bottom: 2.05em;
   z-index: 2;
   transform: translateX(-50%);
   user-select: none;
-  color: rgb(141 249 255 / 0.36);
+  color: rgb(141 249 255 / 0.52);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 850;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
   line-height: 1;
   text-transform: uppercase;
   text-shadow:
-    0 0 18px rgb(141 249 255 / 0.2),
-    0 5px 18px rgb(0 0 0 / 0.56);
+    0 0 16px rgb(141 249 255 / 0.32),
+    0 5px 20px rgb(0 0 0 / 0.72);
   pointer-events: none;
   will-change: opacity, transform;
+}
+
+.drag-affordance::before,
+.drag-affordance::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.42;
+  transform: translateY(-50%);
+  box-shadow: 0 0 10px rgb(141 249 255 / 0.32);
+}
+
+.drag-affordance::before {
+  right: calc(100% + 12px);
+}
+
+.drag-affordance::after {
+  left: calc(100% + 12px);
 }
 
 .drag-affordance.active {
