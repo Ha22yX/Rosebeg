@@ -239,47 +239,47 @@ type CodeWorkItem = {
 const codeWorks: CodeWorkItem[] = [
   {
     name: "Auto Email System",
-    kicker: "Self-hosted AI Console",
-    summary: "AI email triage for IMAP/POP3 inboxes, Chinese summaries, attachments, and WeChat alerts.",
+    kicker: "Personal Attention Filter",
+    summary: "A private inbox command center that reads multiple mailboxes, classifies new messages, and only lets Important or Secondary mail interrupt me through WeChat.",
     sourceUrl: "https://github.com/Ha22yX/auto-email-system",
   },
   {
     name: "Bridge US V2",
-    kicker: "International Student Platform",
-    summary: "Community platform with posts, multilingual workflows, moderation, and AI Q&A.",
+    kicker: "Student-Life Mutual Aid Platform",
+    summary: "A social platform for students in the United States, built so people can ask practical questions, avoid common traps, and get help across languages.",
     sourceUrl: "https://github.com/Ha22yX/Bridge-US-V2",
     websiteUrl: "https://bridge-us.org/",
   },
   {
     name: "Mother-Ship Docking Drone System",
-    kicker: "Dual UAV Research",
-    summary: "Relative-localization workspace for autonomous docking with UWB, AprilTag, PX4, and MAVLink.",
+    kicker: "Layered Drone Localization",
+    summary: "A docking research system that uses GPS, UWB, and vision in sequence, matching each sensor to the range and precision it can actually handle.",
     sourceUrl: "https://github.com/Ha22yX/Mother-Ship-Docking-Drone-System",
     websiteUrl: "https://isef.rosebeg.com/",
   },
   {
     name: "Surfboard Vacuum Table DXF Generator",
-    kicker: "CAD Automation Tool",
-    summary: "Local DXF generator for surfboard vacuum-table suction holes and capsule slots.",
+    kicker: "Factory Workflow Automation",
+    summary: "A tool for my father's surfboard-machine company that turns a board outline into customizable suction-hole geometry and exports a manufacturing-ready DXF.",
     sourceUrl: "https://github.com/Ha22yX/dxf-auto-shape-tool",
   },
   {
     name: "ESP32 Sound Radar",
-    kicker: "Embedded Signal Prototype",
-    summary: "ESP32-S3 four-microphone sound radar with TDOA estimation, TFT display, and web tuning dashboard.",
+    kicker: "Sound Direction Experiment",
+    summary: "A four-microphone experiment that uses sound arrival-time differences, filtering, thresholds, and similarity checks to estimate where a sound came from.",
     sourceUrl: "https://github.com/Ha22yX/ESP32-Sound-Radar",
   },
   {
     name: "SAT AI Tutor",
-    kicker: "Adaptive Learning Platform",
-    summary: "SAT practice platform with adaptive study plans, AI explanations, PDF import, analytics, and admin tools.",
+    kicker: "Human-Like Study Companion",
+    summary: "A SAT practice platform that reviews questions like a teacher: highlights evidence, eliminates choices, finds weak points, and plans targeted practice.",
     sourceUrl: "https://github.com/Ha22yX/SAT-AI-Tutor",
     websiteUrl: "https://sat.rosebeg.com/auth/login?demo=1",
   },
   {
     name: "PhotoBack",
-    kicker: "Photography Delivery Desk",
-    summary: "Event gallery platform for private links, client selections, delivery, and Google Drive backup.",
+    kicker: "Photography Delivery Workflow",
+    summary: "A gallery delivery platform made from my church photography workflow: upload an event once, share one private link, and let people save the photos they need.",
     sourceUrl: "https://github.com/Ha22yX/PhotoBack",
     websiteUrl: "https://photoback.rosebeg.com/view/8b6ab9d9",
   },
@@ -718,7 +718,7 @@ function App() {
               <iframe
                 className="code-works-frame"
                 title="Selected Code Works"
-                src="/project-card-swap/index.html"
+                src="/project-card-swap/index.html?v=works-story-20260716"
                 loading="eager"
               />
             )}

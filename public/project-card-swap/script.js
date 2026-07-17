@@ -35,10 +35,10 @@ const PROJECTS = [
   {
     name: "Auto Email System",
     icon: "mail-search",
-    kicker: "Self-hosted AI Console",
-    tagline: "AI email triage for IMAP/POP3 inboxes, Chinese summaries, attachments, and WeChat alerts.",
+    kicker: "Personal Attention Filter",
+    tagline: "A private inbox command center that reads my mail, separates real signals from noise, and only interrupts me when a message matters.",
     stack: ["React", "Express", "IMAP", "WeChat"],
-    summary: "Turns noisy unread mail into priority queues: Important, Secondary, or Ignore.",
+    summary: "I built it because checking multiple inboxes was stealing focus. New mail becomes Important, Secondary, or Ignore; only the first two are allowed to reach me through WeChat.",
     sourceUrl: "https://github.com/Ha22yX/auto-email-system",
     repoLabel: "View repository",
     accent: "#9bc3ef",
@@ -61,10 +61,10 @@ const PROJECTS = [
   {
     name: "Bridge US V2",
     icon: "messages-square",
-    kicker: "International Student Platform",
-    tagline: "Full-stack community platform with posts, multilingual workflows, moderation, and AI Q&A.",
+    kicker: "Student-Life Mutual Aid Platform",
+    tagline: "A social platform for students studying in the United States, built to make help easier to find and expensive mistakes easier to avoid.",
     stack: ["React", "FastAPI", "Tailwind", "AI Q&A"],
-    summary: "A clearer React/FastAPI rebuild for student-life posts, search, translation, and admin operations.",
+    summary: "Bridge US is about reducing friction and loneliness in study-abroad life. Posts, AI answers, moderation, and translation help students ask, share, and understand faster.",
     sourceUrl: "https://github.com/Ha22yX/Bridge-US-V2",
     websiteUrl: "https://bridge-us.org/",
     repoLabel: "View repository",
@@ -89,10 +89,10 @@ const PROJECTS = [
   {
     name: "Mother-Ship Docking Drone System",
     icon: "satellite",
-    kicker: "Dual UAV Research",
-    tagline: "Relative-localization workspace for autonomous docking with UWB, AprilTag, PX4, and MAVLink.",
+    kicker: "Layered Drone Localization",
+    tagline: "A docking research system that combines GPS, UWB, and vision so two drones can understand their relative position through every stage of approach.",
     stack: ["PX4", "UWB", "AprilTag", "Python"],
-    summary: "Focuses on mother-frame relative position first, then safe control experiments and hardware validation.",
+    summary: "GPS brings the drones into range, UWB narrows the approach, and vision handles the final high-precision window where centimeters matter.",
     sourceUrl: "https://github.com/Ha22yX/Mother-Ship-Docking-Drone-System",
     websiteUrl: "https://isef.rosebeg.com/",
     repoLabel: "View repository",
@@ -117,10 +117,10 @@ const PROJECTS = [
   {
     name: "Surfboard Vacuum Table DXF Generator",
     icon: "drafting-compass",
-    kicker: "CAD Automation Tool",
-    tagline: "Local DXF generator for surfboard vacuum-table suction holes and capsule slots.",
+    kicker: "Factory Workflow Automation",
+    tagline: "A production tool made for my father's surfboard-machine company, replacing repetitive manual vacuum-hole layout with a controllable DXF generator.",
     stack: ["Python", "FastAPI", "ezdxf", "SVG"],
-    summary: "Converts selected board edges into repeatable machining geometry with preview and export controls.",
+    summary: "Each new surfboard mold used to mean hand-designing suction holes. Now the user imports a DXF outline, selects the contour, tunes parameters, and exports a ready file.",
     sourceUrl: "https://github.com/Ha22yX/dxf-auto-shape-tool",
     repoLabel: "View repository",
     accent: "#d8ff5f",
@@ -143,10 +143,10 @@ const PROJECTS = [
   {
     name: "ESP32 Sound Radar",
     icon: "radio-tower",
-    kicker: "Embedded Signal Prototype",
-    tagline: "ESP32-S3 four-microphone sound radar with TDOA estimation, TFT display, and web tuning dashboard.",
+    kicker: "Sound Direction Experiment",
+    tagline: "A small hardware experiment built around a simple question: if sound reaches microphones at different times, can a device infer where it came from?",
     stack: ["ESP32-S3", "Arduino", "I2S", "TDOA"],
-    summary: "A compact hardware demo that estimates sound direction and streams calibration data to the browser.",
+    summary: "Four microphones compare the timing of the same sound wave, while filtering, thresholds, and similarity checks keep random noise from becoming a false direction.",
     sourceUrl: "https://github.com/Ha22yX/ESP32-Sound-Radar",
     repoLabel: "View repository",
     accent: "#ffca6a",
@@ -169,10 +169,10 @@ const PROJECTS = [
   {
     name: "SAT AI Tutor",
     icon: "graduation-cap",
-    kicker: "Adaptive Learning Platform",
-    tagline: "SAT practice platform with adaptive study plans, AI explanations, PDF import, analytics, and admin tools.",
+    kicker: "Human-Like Study Companion",
+    tagline: "An SAT practice platform I built for myself because static answer explanations felt too long, too passive, and too far from how a real teacher helps.",
     stack: ["Next.js", "Flask", "OpenAI", "Docker"],
-    summary: "Wrong answers become guided review with explanations, mastery data, question import, and admin workflows.",
+    summary: "After each question, the review highlights evidence, eliminates choices, and points out traps. AI then turns mistakes into plans, weak-point discovery, and targeted practice.",
     sourceUrl: "https://github.com/Ha22yX/SAT-AI-Tutor",
     websiteUrl: "https://sat.rosebeg.com/auth/login?demo=1",
     repoLabel: "View repository",
@@ -198,10 +198,10 @@ const PROJECTS = [
   {
     name: "PhotoBack",
     icon: "images",
-    kicker: "Photography Delivery Desk",
-    tagline: "Self-hosted event gallery platform for private links, client selections, delivery, and Google Drive backup.",
+    kicker: "Photography Delivery Workflow",
+    tagline: "A photo delivery platform built from my own church photography workflow, so every event can have one clean link instead of endless manual sending.",
     stack: ["Flask", "SQLite", "Pillow", "Google Drive"],
-    summary: "Built around a photographer workflow: upload media, share one clean link, collect selections, and deliver files.",
+    summary: "I upload an event gallery once, share a private project link, and people can find and save the photos they want. It makes delivery calmer for both sides.",
     sourceUrl: "https://github.com/Ha22yX/PhotoBack",
     websiteUrl: "https://photoback.rosebeg.com/view/8b6ab9d9",
     repoLabel: "View repository",
@@ -637,66 +637,66 @@ function externalTarget(url) {
 function getProjectExpandedDetails(project) {
   const detailMap = {
     "Auto Email System": {
-      focus: "A private inbox command center that compresses unread mail into decisions instead of another queue.",
-      role: "Full-stack automation, data flow design, alert logic",
+      focus: "A daily-use automation system built around attention, not just inbox parsing. It turns scattered mailboxes into one priority stream and lets unimportant messages disappear quietly.",
+      role: "Personal automation, AI triage, notification design",
       notes: [
-        "Separates inbox noise into priority classes before it reaches the user.",
-        "Keeps the surface operational: summaries, attachments, and WeChat alerts stay in one workflow.",
-        "Designed for self-hosting, so credentials and mail state remain under owner control."
+        "Reads multiple inboxes automatically and converts new mail into Important, Secondary, or Ignore.",
+        "Sends WeChat alerts only when a message is worth interrupting the day.",
+        "Uses automation to protect focus instead of creating another place to check."
       ]
     },
     "Bridge US V2": {
-      focus: "A rebuild of student-life infrastructure around multilingual posts, moderation, search, and AI help.",
-      role: "Product architecture, React/FastAPI implementation, admin UX",
+      focus: "A community product for the small but painful problems international students meet every week: housing, school systems, documents, scams, cultural gaps, and language barriers.",
+      role: "Community product, AI workflows, full-stack implementation",
       notes: [
-        "Balances public community posting with moderation and administrative visibility.",
-        "Uses translation and AI Q&A as workflow features rather than decorative add-ons.",
-        "Structured as a practical platform that can keep growing after launch."
+        "Creates a place where students can ask practical questions before making expensive mistakes.",
+        "Uses AI Q&A, moderation, and translation to make help safer and easier to understand.",
+        "Treats the product as student-life infrastructure, not just another forum."
       ]
     },
     "Mother-Ship Docking Drone System": {
-      focus: "A research workspace for relative localization and safer autonomous docking experiments.",
-      role: "Research prototyping, sensor integration, control validation",
+      focus: "A layered localization pipeline for autonomous mother-child drone docking, designed around the limits of every sensor rather than pretending one sensor can solve the whole problem.",
+      role: "UAV autonomy, sensor fusion, research prototype",
       notes: [
-        "Combines UWB, visual markers, PX4, and MAVLink into one experimental stack.",
-        "Prioritizes mother-frame relative position before higher-risk control loops.",
-        "Keeps hardware validation and simulation artifacts visible in the same repository story."
+        "Uses GPS for long-range convergence before close guidance begins.",
+        "Hands off to UWB when the drones are close enough for local positioning.",
+        "Uses vision for the final docking window where high precision matters most."
       ]
     },
     "Surfboard Vacuum Table DXF Generator": {
-      focus: "A geometry tool that turns board contours into repeatable manufacturing outputs.",
-      role: "CAD automation, local tool design, export pipeline",
+      focus: "A real factory problem turned into software: reduce repeated CAD labor, keep operators in control, and make each new surfboard mold faster to prepare.",
+      role: "Manufacturing software, CAD workflow, family business tooling",
       notes: [
-        "Converts edge selections into suction-hole and capsule-slot patterns.",
-        "Bridges visual preview and DXF export so the tool stays useful at the bench.",
-        "Keeps manufacturing geometry parameterized instead of hand-redrawn."
+        "Starts from the surfboard outline the factory already receives from customers.",
+        "Generates suction-hole geometry automatically while keeping parameters editable.",
+        "Exports a DXF that can move back into the manufacturing workflow without redrawing by hand."
       ]
     },
     "ESP32 Sound Radar": {
-      focus: "A compact embedded signal prototype for estimating direction from microphone timing differences.",
-      role: "Embedded prototyping, signal workflow, calibration UI",
+      focus: "A playful embedded project that turns physics into an interface: time-of-arrival differences become a readable direction signal.",
+      role: "Embedded prototyping, signal processing, calibration design",
       notes: [
-        "Builds a four-microphone TDOA pipeline around ESP32-S3 constraints.",
-        "Pairs the physical display with a web tuning surface for fast calibration.",
-        "Treats the browser as a live lab console rather than only a dashboard."
+        "Compares when the same wavefront reaches four microphones.",
+        "Filters out unrelated noise with thresholding, similarity checks, and timing logic.",
+        "Turns a small hardware curiosity into a visible, tunable experiment."
       ]
     },
     "SAT AI Tutor": {
-      focus: "An adaptive study system that turns wrong answers into guided review and mastery data.",
-      role: "Learning product design, AI explanation flow, admin tooling",
+      focus: "A student-built learning tool shaped by the frustration of studying with long static explanations. The goal is to make review feel guided, visual, and personal.",
+      role: "Education product, AI tutoring, study experience design",
       notes: [
-        "Connects practice, explanations, PDF import, and analytics into a single learning loop.",
-        "Uses AI feedback where it can reduce review friction and expose patterns.",
-        "Keeps admin workflows close to the question bank and student progress data."
+        "Explains mistakes like a teacher: highlighting evidence, eliminating options, and naming traps.",
+        "Turns practice history into weak-point discovery and targeted drills.",
+        "Keeps the study loop active instead of leaving the student alone with a wall of text."
       ]
     },
     PhotoBack: {
-      focus: "A self-hosted gallery desk for photographer delivery, private links, and client selections.",
-      role: "Photography workflow design, Flask implementation, media delivery",
+      focus: "A practical photographer tool born from real social friction: after an event, the hardest part is often getting the right images to the right people without chaos.",
+      role: "Photography workflow, gallery delivery, client experience",
       notes: [
-        "Turns event delivery into a clean client-facing link instead of scattered files.",
-        "Keeps selection, delivery, and backup close to the photographer workflow.",
-        "Designed around trust: private access, clear gallery states, and predictable handoff."
+        "Lets one event gallery become one private link that can be shared with everyone photographed.",
+        "Allows people to find and save the images they actually want.",
+        "Makes delivery calmer for the photographer and easier for the people in the photos."
       ]
     }
   };
