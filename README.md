@@ -11,21 +11,42 @@ Motion, Three.js ASCII text, and a shader-based background system.
 
 ## Preview
 
-### Opening screen
+<table>
+  <tr>
+    <td colspan="2">
+      <img src="docs/readme/rosebeg-hero.png" alt="Rosebeg opening screen with the Welcome to Rosebeg title" />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2"><strong>Opening screen.</strong> The site starts with the Rosebeg identity and ASCII-style title sequence.</td>
+  </tr>
+</table>
 
-![Rosebeg opening screen](docs/readme/rosebeg-hero.png)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme/rosebeg-identity.png" alt="Rosebeg identity section showing Developer, Researcher, Photographer, and Designer cards" />
+    </td>
+    <td width="50%">
+      <img src="docs/readme/rosebeg-code-works.png" alt="Rosebeg selected code works section with stacked project windows" />
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Identity section.</strong> Four parts of my work are shown as one personal system: developer, researcher, photographer, and designer.</td>
+    <td><strong>Selected code works.</strong> Projects are presented as an interactive archive rather than a plain link list.</td>
+  </tr>
+</table>
 
-### Identity section
-
-![Rosebeg identity section](docs/readme/rosebeg-identity.png)
-
-### Selected code works
-
-![Rosebeg selected code works](docs/readme/rosebeg-code-works.png)
-
-### Signal ports
-
-![Rosebeg signal ports contact section](docs/readme/rosebeg-signal-ports.png)
+<table>
+  <tr>
+    <td>
+      <img src="docs/readme/rosebeg-signal-ports.png" alt="Rosebeg signal ports contact section with GitHub, WeChat, Instagram, and Email links" />
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Signal ports.</strong> Public contact channels are designed as part of the Rosebeg interface language.</td>
+  </tr>
+</table>
 
 ## What the Site Presents
 
@@ -72,4 +93,3 @@ npm test
 - `components/ui/signal-navigation.tsx` - navigation menu.
 - `public/project-card-swap/` - embedded selected works interface.
 - `docs/readme/` - README screenshots.
-
