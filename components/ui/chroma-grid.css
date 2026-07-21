@@ -102,8 +102,8 @@
   opacity: 1;
   background: rgb(0 0 0 / 0.001);
   border-radius: inherit;
-  backdrop-filter: grayscale(1) brightness(0.68) contrast(1.05);
-  -webkit-backdrop-filter: grayscale(1) brightness(0.68) contrast(1.05);
+  backdrop-filter: grayscale(0.55) brightness(0.88) contrast(1.05);
+  -webkit-backdrop-filter: grayscale(0.55) brightness(0.88) contrast(1.05);
   mask-image: none;
   -webkit-mask-image: none;
   transition:
@@ -145,7 +145,7 @@
   object-fit: cover;
   border-radius: 10px;
   display: block;
-  filter: saturate(1.06) brightness(0.9) contrast(1.05);
+  filter: saturate(1.1) brightness(1.02) contrast(1.04);
 }
 
 .chroma-info {
@@ -188,7 +188,7 @@
 .chroma-info .handle {
   align-self: start;
   padding-top: 0.14rem;
-  color: rgb(230 232 232 / 0.64);
+  color: color-mix(in srgb, var(--card-border) 70%, rgb(243 238 230));
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 850;

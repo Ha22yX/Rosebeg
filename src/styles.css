@@ -577,6 +577,7 @@ html[data-background-interaction="true"] .archive-field {
 }
 
 .hero-panel {
+  position: relative;
   display: grid;
   min-height: 100dvh;
   place-items: center;
@@ -970,7 +971,7 @@ html[data-background-interaction="true"] .archive-field {
   font-family: var(--font-mono);
   font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -2135,5 +2136,196 @@ html[data-background-interaction="true"] .archive-field {
 
   .page-stage.is-mobile-performance .archive-field {
     opacity: 0.24;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Signal Archive unification layer
+ * Shared section chrome, narrative elements (scroll cue, footer), and global
+ * interaction states. Final cascade block.
+ * ------------------------------------------------------------------------- */
+
+::selection {
+  color: var(--archive-void);
+  background: var(--archive-cyan);
+  text-shadow: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--archive-cyan);
+  outline-offset: 2px;
+}
+
+/* Shared section kicker (01 · …), matching kickers across sections. */
+.section-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--archive-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Photography section chrome — overlays the sphere field on wide screens,
+   flows into the document on mobile. Pointer-transparent so the menu stays
+   draggable underneath. */
+.photography-heading {
+  position: absolute;
+  z-index: 3;
+  top: clamp(96px, 10vw, 132px);
+  left: clamp(22px, 6vw, 96px);
+  max-width: 320px;
+  pointer-events: none;
+}
+
+.photography-heading h2 {
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 4.2vw, 4.6rem);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-shadow: 0 0 34px rgb(147 243 255 / 0.16);
+}
+
+.photography-heading p {
+  max-width: 30ch;
+  margin: 12px 0 0;
+  color: rgb(243 238 230 / 0.6);
+  font-size: clamp(0.84rem, 0.95vw, 0.98rem);
+  font-weight: 650;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+@media (max-width: 720px) {
+  .photography-heading {
+    position: static;
+    width: min(var(--max), calc(100% - 40px));
+    max-width: none;
+    margin: 0 auto 22px;
+  }
+
+  .photography-heading h2 {
+    font-size: clamp(2.2rem, 9vw, 3rem);
+  }
+}
+
+/* Hero scroll cue — appears once the typewriter sequence completes. */
+.scroll-cue {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: clamp(18px, 3.6vh, 36px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
+  color: rgb(243 238 230 / 0.52);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 900ms ease,
+    translate 900ms var(--archive-motion-ease);
+}
+
+.scroll-cue.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.scroll-cue-line {
+  width: 1px;
+  height: 34px;
+  background: linear-gradient(to bottom, rgb(147 243 255 / 0), rgb(147 243 255 / 0.75));
+  animation: scroll-cue-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes scroll-cue-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleY(0.62);
+    transform-origin: top;
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue {
+    transition: none;
+  }
+
+  .scroll-cue-line {
+    animation: none;
+  }
+}
+
+/* Site footer — closes the page with the brand wordmark, anchor nav, and
+   build credit. */
+.site-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 32px;
+  width: min(var(--max), calc(100% - 40px));
+  margin: 0 auto;
+  padding: 34px 0 44px;
+  border-top: 1px solid var(--archive-line-soft);
+  color: rgb(243 238 230 / 0.58);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.site-footer-brand {
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.site-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+
+.site-footer-nav a {
+  color: rgb(243 238 230 / 0.58);
+  text-transform: uppercase;
+  transition: color var(--archive-hover-duration) ease;
+}
+
+.site-footer-nav a:hover {
+  color: var(--archive-cyan);
+}
+
+.site-footer-credit {
+  color: rgb(243 238 230 / 0.42);
+}
+
+@media (max-width: 720px) {
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
 }

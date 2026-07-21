@@ -206,8 +206,8 @@ const chromaIdentityItems: ChromaGridItem[] = [
     subtitle: "I explore autonomous systems, multi-sensor fusion, and high-precision UAV coordination.",
     location: "UAV autonomy · Sensor fusion · Prototyping",
     handle: "@lab",
-    borderColor: "#B9FF6A",
-    gradient: "linear-gradient(210deg, rgb(86 109 43 / 0.78), #02030b 74%)",
+    borderColor: "#9DD6A0",
+    gradient: "linear-gradient(210deg, rgb(74 96 58 / 0.72), #02030b 74%)",
   },
   {
     image: "/assets/photography/night-current-thumb.jpg",
@@ -224,8 +224,8 @@ const chromaIdentityItems: ChromaGridItem[] = [
     subtitle: "I shape interfaces, identities, and digital atmospheres where technology feels intentional.",
     location: "Interface · Motion · Visual identity",
     handle: "@visual",
-    borderColor: "#8B5CF6",
-    gradient: "linear-gradient(195deg, rgb(82 39 255 / 0.76), #02030b 76%)",
+    borderColor: "#A78BFA",
+    gradient: "linear-gradient(195deg, rgb(109 76 214 / 0.7), #02030b 76%)",
   },
 ];
 
@@ -502,6 +502,7 @@ function App() {
   });
   const asciiTitle = getAsciiTitleLayers(titleState.displayText, titleState.targetText, isCompact);
   const asciiRender = getAsciiRenderConfig(titleState.targetText, isCompact);
+  const heroTyped = titleState.displayText === "Welcome to Rosebeg";
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 980px)");
@@ -684,6 +685,10 @@ function App() {
                 )}
               </h1>
             </div>
+            <div className={`scroll-cue${heroTyped ? " is-visible" : ""}`} aria-hidden="true">
+              <span>Scroll to explore</span>
+              <span className="scroll-cue-line" />
+            </div>
           </section>
 
           <section
@@ -694,7 +699,7 @@ function App() {
           >
             <div className="chroma-about-copy">
               <div>
-                <span>Signal identity</span>
+                <span>01 · Signal identity</span>
                 <h2 id="who-title">Who I Am</h2>
               </div>
               <p>
@@ -743,6 +748,11 @@ function App() {
             data-archive-section="photos"
           >
             <div className="photography-lens-frame" data-lens-frame aria-hidden="true" />
+            <div className="photography-heading">
+              <span className="section-kicker">03 · Photography</span>
+              <h2>Field Notes</h2>
+              <p>Architecture, street light, and quiet moments — a rotating field archive.</p>
+            </div>
             {isMobilePerformanceMode ? (
               <MobilePhotoGallery items={photographyItems} />
             ) : (
@@ -753,6 +763,18 @@ function App() {
           </section>
 
           <SocialSignalPorts />
+
+          <footer className="site-footer">
+            <span className="site-footer-brand">Rosebeg</span>
+            <nav className="site-footer-nav" aria-label="Footer navigation">
+              <a href="#hero">Home</a>
+              <a href="#who">About</a>
+              <a href="#works">Works</a>
+              <a href="#photos">Photos</a>
+              <a href="#social">Social</a>
+            </nav>
+            <span className="site-footer-credit">Designed &amp; built by HarryX · © 2026</span>
+          </footer>
         </main>
       </div>
       <SignalNavigation isOpen={isNavigationOpen} onOpenChange={setIsNavigationOpen} />

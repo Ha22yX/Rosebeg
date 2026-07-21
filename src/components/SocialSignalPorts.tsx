@@ -87,7 +87,7 @@ const signalPortsStyles = `
   font-family: var(--font-mono);
   font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -901,7 +901,7 @@ export const SocialSignalPorts = memo(function SocialSignalPorts({
         style={panelStyle}
       >
         <div className="signal-ports-copy">
-          <span className="signal-ports-kicker">Public channels</span>
+          <span className="signal-ports-kicker">04 · Public channels</span>
           <h2 id={`${id}-title`}>{title}</h2>
           <p>{tagline}</p>
           <div className="signal-ports-readout" aria-live="polite">
