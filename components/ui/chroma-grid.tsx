@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, memo, type PointerEvent, useEffect, useRef, useState } from "react";
 import "./chroma-grid.css";
 
 export type ChromaGridItem = {
@@ -39,7 +39,7 @@ type ChromaCardStyle = CSSProperties & {
   "--mouse-y"?: string;
 };
 
-export const ChromaGrid = ({
+export const ChromaGrid = memo(({
   items,
   className = "",
   radius = 300,
@@ -241,6 +241,6 @@ export const ChromaGrid = ({
       ) : null}
     </div>
   );
-};
+});
 
 export default ChromaGrid;

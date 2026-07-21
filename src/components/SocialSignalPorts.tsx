@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { memo, useMemo, useState, type CSSProperties } from "react";
 
 export type SignalPort = {
   index: string;
@@ -871,7 +871,7 @@ function isExternalHref(href: string) {
   return /^https?:\/\//.test(href);
 }
 
-export function SocialSignalPorts({
+export const SocialSignalPorts = memo(function SocialSignalPorts({
   id = "social",
   title = "Signal Ports",
   tagline = "GitHub for code, Instagram for field images, WeChat for quick messages, and email for conversations that need care.",
@@ -987,6 +987,6 @@ export function SocialSignalPorts({
       </section>
     </>
   );
-}
+});
 
 export default SocialSignalPorts;

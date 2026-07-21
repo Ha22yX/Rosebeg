@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 
 type ShaderBackgroundProps = {
   className?: string;
@@ -286,7 +286,7 @@ function getShaderPixelRatio(basePixelRatio: number, isInteracting: boolean, qua
   return Math.min(window.devicePixelRatio || 1, basePixelRatio, qualityCap, interactionCap);
 }
 
-export function ShaderBackground({ className = "", performanceMode = "full" }: ShaderBackgroundProps) {
+export const ShaderBackground = memo(function ShaderBackground({ className = "", performanceMode = "full" }: ShaderBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -299,8 +299,11 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
       return;
     }
 
-    const gl = canvas.getContext("webgl", { antialias: false });
+    // Opaque, depth-less drawing buffer: the shader always outputs alpha 1.0,
+    // so the compositor can treat this fullscreen layer as opaque.
+    const gl = canvas.getContext("webgl", { antialias: false, alpha: false, depth: false, stencil: false });
     if (!gl) {
+      canvas.style.display = "none";
       return;
     }
 
@@ -325,6 +328,7 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     const program = gl.createProgram();
 
     if (!vertexShader || !fragmentShader || !program) {
+      canvas.style.display = "none";
       return;
     }
 
@@ -336,6 +340,7 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       gl.deleteProgram(program);
+      canvas.style.display = "none";
       return;
     }
 
@@ -362,6 +367,11 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     gl.uniform4f(uni("u_finish"), UNIFORMS.hue, UNIFORMS.vignette, UNIFORMS.blur, UNIFORMS.grain);
     gl.uniform4f(uni("u_transform"), UNIFORMS.seed, UNIFORMS.rotate, UNIFORMS.drift, UNIFORMS.oklab);
     gl.uniform4f(uni("u_cursor"), 0, UNIFORMS.cursorEffect, UNIFORMS.cursorStrength, UNIFORMS.cursorRadius);
+
+    // Cache uniform locations used per frame instead of re-querying every draw.
+    const uSceneLocation = uni("u_scene");
+    const uSpaceLocation = uni("u_space");
+    const uCursorLocation = uni("u_cursor");
 
     let targetX = 0;
     let targetY = 0;
@@ -473,11 +483,6 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
     let lastTelemetryNow = Number.NEGATIVE_INFINITY;
     let qualityDropUntil = 0;
 
-    canvas.dataset.shaderIdleFrameMs = SHADER_IDLE_FRAME_MS.toFixed(2);
-    canvas.dataset.shaderInteractionFrameMs = SHADER_INTERACTION_FRAME_MS.toFixed(2);
-    canvas.dataset.shaderMaxPixelRatio = basePixelRatio.toFixed(2);
-    canvas.dataset.performanceMode = performanceMode;
-
     const render = (now: number) => {
       raf = 0;
       if (!isVisible) {
@@ -515,25 +520,25 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
 
       const shaderTime = ((now - start) / 1000) * UNIFORMS.timeScale;
       const flowOffsetY = -shaderTime * 0.075;
-      gl.uniform4f(uni("u_scene"), w, h, shaderTime, UNIFORMS.colorCount);
-      gl.uniform4f(uni("u_space"), UNIFORMS.offsetX, UNIFORMS.offsetY + scrollOffset, mouseX, mouseY);
-      gl.uniform4f(
-        uni("u_cursor"),
-        UNIFORMS.cursorEnabled ? cursorPresence : 0,
-        UNIFORMS.cursorEffect,
-        UNIFORMS.cursorStrength,
-        UNIFORMS.cursorRadius
-      );
+      gl.uniform4f(uSceneLocation, w, h, shaderTime, UNIFORMS.colorCount);
+      gl.uniform4f(uSpaceLocation, UNIFORMS.offsetX, UNIFORMS.offsetY + scrollOffset, mouseX, mouseY);
+      if (UNIFORMS.cursorEnabled) {
+        gl.uniform4f(
+          uCursorLocation,
+          cursorPresence,
+          UNIFORMS.cursorEffect,
+          UNIFORMS.cursorStrength,
+          UNIFORMS.cursorRadius
+        );
+      }
 
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      // Test-visible motion telemetry (asserted by tests/homepage.spec.js).
       if (now - lastTelemetryNow >= SHADER_TELEMETRY_INTERVAL_MS) {
         lastTelemetryNow = now;
         canvas.dataset.parallaxOffset = scrollOffset.toFixed(4);
         canvas.dataset.shaderTime = shaderTime.toFixed(4);
         canvas.dataset.flowOffsetY = flowOffsetY.toFixed(4);
-        canvas.dataset.shaderInteraction = isInteracting ? "true" : "false";
-        canvas.dataset.shaderPixelRatio = dpr.toFixed(2);
-        canvas.dataset.shaderQuality = now < qualityDropUntil ? "reduced" : "normal";
       }
       raf = requestAnimationFrame(render);
     };
@@ -594,4 +599,4 @@ export function ShaderBackground({ className = "", performanceMode = "full" }: S
       )}
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, memo, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { mat4, quat, vec2, vec3, vec4 } from "gl-matrix";
 
@@ -596,6 +596,14 @@ class ArcballControl {
   private combinedQuat = quat.create();
   private abortController = new AbortController();
   private activePointerId: number | null = null;
+  // Scratch objects reused every frame to avoid per-frame allocations.
+  private readonly tmpVec2A = vec2.create();
+  private readonly tmpVec3A = vec3.create();
+  private readonly tmpVec3B = vec3.create();
+  private readonly tmpVec3C = vec3.create();
+  private readonly tmpQuatA = quat.create();
+  private readonly tmpQuatB = quat.create();
+  private readonly snapRotationQuat = quat.create();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -667,21 +675,19 @@ class ArcballControl {
   update(deltaTime: number, targetFrameDuration = 16) {
     const timeScale = deltaTime / targetFrameDuration + 0.00001;
     let angleFactor = timeScale;
-    const snapRotation = quat.create();
+    const snapRotation = quat.identity(this.snapRotationQuat);
 
     if (this.isPointerDown) {
       const intensity = 0.3 * timeScale;
       const angleAmplification = 5 / timeScale;
-      const midPointerPos = vec2.sub(vec2.create(), this.pointerPos, this.previousPointerPos);
+      const midPointerPos = vec2.sub(this.tmpVec2A, this.pointerPos, this.previousPointerPos);
       vec2.scale(midPointerPos, midPointerPos, intensity);
 
       if (vec2.sqrLen(midPointerPos) > this.epsilon) {
         vec2.add(midPointerPos, this.previousPointerPos, midPointerPos);
 
-        const p = this.project(midPointerPos);
-        const q = this.project(this.previousPointerPos);
-        const a = vec3.normalize(vec3.create(), p);
-        const b = vec3.normalize(vec3.create(), q);
+        const a = vec3.normalize(this.tmpVec3A, this.projectInto(midPointerPos, this.tmpVec3A));
+        const b = vec3.normalize(this.tmpVec3B, this.projectInto(this.previousPointerPos, this.tmpVec3B));
 
         vec2.copy(this.previousPointerPos, midPointerPos);
         angleFactor *= angleAmplification;
@@ -704,9 +710,12 @@ class ArcballControl {
       }
     }
 
-    const combinedQuat = quat.multiply(quat.create(), snapRotation, this.pointerRotation);
-    this.orientation = quat.multiply(quat.create(), combinedQuat, this.orientation);
-    quat.normalize(this.orientation, this.orientation);
+    const combinedQuat = quat.multiply(this.tmpQuatA, snapRotation, this.pointerRotation);
+    const nextOrientation = quat.normalize(
+      this.tmpQuatB,
+      quat.multiply(this.tmpQuatB, combinedQuat, this.orientation)
+    );
+    quat.copy(this.orientation, nextOrientation);
 
     const rotationAxisIntensity = 0.8 * timeScale;
     quat.slerp(this.combinedQuat, this.combinedQuat, combinedQuat, rotationAxisIntensity);
@@ -730,14 +739,14 @@ class ArcballControl {
   }
 
   quatFromVectors(a: vec3, b: vec3, out: quat, angleFactor = 1) {
-    const axis = vec3.cross(vec3.create(), a, b);
+    const axis = vec3.cross(this.tmpVec3C, a, b);
     vec3.normalize(axis, axis);
     const d = Math.max(-1, Math.min(1, vec3.dot(a, b)));
     const angle = Math.acos(d) * angleFactor;
     quat.setAxisAngle(out, axis, angle);
   }
 
-  private project(pos: vec2) {
+  private projectInto(pos: vec2, out: vec3) {
     const r = 2;
     const width = this.canvas.clientWidth;
     const height = this.canvas.clientHeight;
@@ -748,9 +757,12 @@ class ArcballControl {
     const rSq = r * r;
     const z = xySq <= rSq / 2 ? Math.sqrt(rSq - xySq) : rSq / Math.sqrt(xySq);
 
-    return vec3.fromValues(-x, y, z);
+    return vec3.set(out, -x, y, z);
   }
 }
+
+const WORLD_ORIGIN = vec3.create();
+const WORLD_UP = vec3.fromValues(0, 1, 0);
 
 class InfiniteGridMenu {
   private readonly targetFrameDuration = infiniteMenuTargetFrameMs;
@@ -787,6 +799,16 @@ class InfiniteGridMenu {
     buffer: WebGLBuffer | null;
   };
   private worldMatrix = mat4.create();
+  // Scratch objects reused every frame to avoid per-frame allocations.
+  private readonly tmpVec3A = vec3.create();
+  private readonly tmpVec3B = vec3.create();
+  private readonly tmpMat4A = mat4.create();
+  private readonly tmpMat4B = mat4.create();
+  private readonly tmpQuatA = quat.create();
+  private readonly snapTargetVec = vec3.create();
+  private transformedPositions: vec3[] = [];
+  private readonly sphereOffset: vec3;
+  private isDisposed = false;
   private texture: WebGLTexture | null;
   private atlasSize = 1;
   private control: ArcballControl;
@@ -866,6 +888,8 @@ class InfiniteGridMenu {
     const icoGeometry = new IcosahedronGeometry();
     icoGeometry.subdivide(1).spherize(this.sphereRadius);
     this.instancePositions = icoGeometry.vertices.map((vertex) => vertex.position);
+    this.transformedPositions = this.instancePositions.map(() => vec3.create());
+    this.sphereOffset = vec3.fromValues(0, 0, -this.sphereRadius);
     this.discInstances = this.initDiscInstances(this.instancePositions.length);
     this.texture = createAndSetupTexture(gl);
     this.initTexture();
@@ -885,6 +909,16 @@ class InfiniteGridMenu {
     this.pause();
     this.control.dispose();
     this.setHiddenInstanceIndex(null);
+    this.isDisposed = true;
+
+    // Release every GL resource owned by this sketch, then drop the context
+    // so repeated mount/unmount cycles cannot leak WebGL contexts.
+    const gl = this.gl;
+    gl.deleteTexture(this.texture);
+    gl.deleteBuffer(this.discInstances.buffer);
+    gl.deleteVertexArray(this.discVAO);
+    gl.deleteProgram(this.discProgram);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
 
   pause() {
@@ -1019,7 +1053,11 @@ class InfiniteGridMenu {
     this.nearestVertexIndex = instanceIndex;
     quat.rotationTo(this.control.orientation, localDirection, this.control.snapDirection);
     quat.normalize(this.control.orientation, this.control.orientation);
-    this.control.snapTargetDirection = vec3.normalize(vec3.create(), this.getVertexWorldPosition(instanceIndex));
+    vec3.normalize(
+      this.snapTargetVec,
+      vec3.transformQuat(this.snapTargetVec, this.instancePositions[instanceIndex], this.control.orientation)
+    );
+    this.control.snapTargetDirection = this.snapTargetVec;
     this.onActiveItemChange(safeItemIndex);
   }
 
@@ -1078,6 +1116,10 @@ class InfiniteGridMenu {
           })
       )
     ).then((images) => {
+      if (this.isDisposed) {
+        return;
+      }
+
       images.forEach((image, index) => {
         const x = (index % atlasSize) * cellSize;
         const y = Math.floor(index / atlasSize) * cellSize;
@@ -1128,23 +1170,26 @@ class InfiniteGridMenu {
     const gl = this.gl;
     this.control.update(deltaTime, this.targetFrameDuration);
 
-    const positions = this.instancePositions.map((position) =>
-      vec3.transformQuat(vec3.create(), position, this.control.orientation)
-    );
+    const positions = this.transformedPositions;
+    for (let index = 0; index < this.instancePositions.length; index += 1) {
+      vec3.transformQuat(positions[index], this.instancePositions[index], this.control.orientation);
+    }
+
     const scale = 0.25;
     const scaleIntensity = 0.6;
 
-    positions.forEach((position, index) => {
+    for (let index = 0; index < positions.length; index += 1) {
+      const position = positions[index];
       const s = (Math.abs(position[2]) / this.sphereRadius) * scaleIntensity + (1 - scaleIntensity);
       const finalScale = s * scale;
-      const matrix = mat4.create();
+      const matrix = mat4.identity(this.tmpMat4A);
 
-      mat4.multiply(matrix, matrix, mat4.fromTranslation(mat4.create(), vec3.negate(vec3.create(), position)));
-      mat4.multiply(matrix, matrix, mat4.targetTo(mat4.create(), [0, 0, 0], position, [0, 1, 0]));
-      mat4.multiply(matrix, matrix, mat4.fromScaling(mat4.create(), [finalScale, finalScale, finalScale]));
-      mat4.multiply(matrix, matrix, mat4.fromTranslation(mat4.create(), [0, 0, -this.sphereRadius]));
+      mat4.multiply(matrix, matrix, mat4.fromTranslation(this.tmpMat4B, vec3.negate(this.tmpVec3A, position)));
+      mat4.multiply(matrix, matrix, mat4.targetTo(this.tmpMat4B, WORLD_ORIGIN, position, WORLD_UP));
+      mat4.multiply(matrix, matrix, mat4.fromScaling(this.tmpMat4B, vec3.set(this.tmpVec3A, finalScale, finalScale, finalScale)));
+      mat4.multiply(matrix, matrix, mat4.fromTranslation(this.tmpMat4B, this.sphereOffset));
       mat4.copy(this.discInstances.matrices[index], matrix);
-    });
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.discInstances.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.discInstances.matricesArray);
@@ -1305,7 +1350,11 @@ class InfiniteGridMenu {
       const itemIndex = nearestVertexIndex % Math.max(1, this.items.length);
       this.nearestVertexIndex = nearestVertexIndex;
       this.onActiveItemChange(itemIndex);
-      this.control.snapTargetDirection = vec3.normalize(vec3.create(), this.getVertexWorldPosition(nearestVertexIndex));
+      vec3.normalize(
+        this.snapTargetVec,
+        vec3.transformQuat(this.snapTargetVec, this.instancePositions[nearestVertexIndex], this.control.orientation)
+      );
+      this.control.snapTargetDirection = this.snapTargetVec;
     } else {
       cameraTargetZ += this.smoothRotationVelocity * 42 + 2.05;
       damping = 10 / timeScale;
@@ -1317,8 +1366,8 @@ class InfiniteGridMenu {
 
   private findNearestVertexIndex() {
     const snapDirection = this.control.snapDirection;
-    const inverseOrientation = quat.conjugate(quat.create(), this.control.orientation);
-    const transformedDirection = vec3.transformQuat(vec3.create(), snapDirection, inverseOrientation);
+    const inverseOrientation = quat.conjugate(this.tmpQuatA, this.control.orientation);
+    const transformedDirection = vec3.transformQuat(this.tmpVec3A, snapDirection, inverseOrientation);
     let maxDistance = -1;
     let nearestVertexIndex = this.nearestVertexIndex;
 
@@ -1332,10 +1381,6 @@ class InfiniteGridMenu {
 
     return nearestVertexIndex;
   }
-
-  private getVertexWorldPosition(index: number) {
-    return vec3.transformQuat(vec3.create(), this.instancePositions[index], this.control.orientation);
-  }
 }
 
 const defaultItems: InfiniteMenuItem[] = [
@@ -1347,7 +1392,108 @@ const defaultItems: InfiniteMenuItem[] = [
   },
 ];
 
-export function InfiniteMenu({ items = [], scale = 1.0, active = true }: InfiniteMenuProps) {
+type InfiniteMenuActionButtonProps = {
+  title: string;
+  inactive: boolean;
+  onOpen: () => void;
+};
+
+// Isolated so the 60fps distortion tween only re-renders this button subtree
+// instead of the whole InfiniteMenu (canvas, lightbox portal, titles).
+const InfiniteMenuActionButton = memo(function InfiniteMenuActionButton({
+  title,
+  inactive,
+  onOpen,
+}: InfiniteMenuActionButtonProps) {
+  const [buttonState, setButtonState] = useState<"idle" | "hover" | "press">("idle");
+  const [distortionScale, setDistortionScale] = useState(-300);
+  const scaleFrameRef = useRef<number | null>(null);
+  const scaleValueRef = useRef(-300);
+  const targetDistortionScale = buttonState === "idle" ? -300 : 300;
+
+  useEffect(() => {
+    if (scaleFrameRef.current) {
+      window.cancelAnimationFrame(scaleFrameRef.current);
+      scaleFrameRef.current = null;
+    }
+
+    const from = scaleValueRef.current;
+    const to = targetDistortionScale;
+
+    if (from === to) {
+      setDistortionScale(to);
+      return undefined;
+    }
+
+    const duration = 420;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const next = progress === 1 ? to : Math.round((from + (to - from) * eased) * 100) / 100;
+
+      scaleValueRef.current = next;
+      setDistortionScale(next);
+
+      if (progress < 1) {
+        scaleFrameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        scaleFrameRef.current = null;
+      }
+    };
+
+    scaleFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (scaleFrameRef.current) {
+        window.cancelAnimationFrame(scaleFrameRef.current);
+        scaleFrameRef.current = null;
+      }
+    };
+  }, [targetDistortionScale]);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      onPointerEnter={() => setButtonState("hover")}
+      onPointerLeave={() => setButtonState("idle")}
+      onPointerDown={() => setButtonState("press")}
+      onPointerUp={() => setButtonState("hover")}
+      onPointerCancel={() => setButtonState("idle")}
+      onBlur={() => setButtonState("idle")}
+      className={`action-button ${inactive ? "inactive" : "active"}`}
+      aria-label={`Open ${title}`}
+      data-glass-surface="true"
+    >
+      <GlassSurface
+        width="100%"
+        height="100%"
+        borderRadius={999}
+        borderWidth={0.11}
+        brightness={50}
+        opacity={0.93}
+        blur={11}
+        displace={1.1}
+        backgroundOpacity={0.08}
+        saturation={1}
+        distortionScale={distortionScale}
+        redOffset={20}
+        greenOffset={21}
+        blueOffset={20}
+        mixBlendMode="screen"
+        className="action-button-glass"
+      >
+        <span className="action-button-icon" aria-hidden="true">
+          {"\u2197"}
+        </span>
+      </GlassSurface>
+    </button>
+  );
+});
+
+export const InfiniteMenu = memo(function InfiniteMenu({ items = [], scale = 1.0, active = true }: InfiniteMenuProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sketchRef = useRef<InfiniteGridMenu | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -1359,21 +1505,16 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
   const [viewer, setViewer] = useState<ViewerState | null>(null);
   const [viewerExpanded, setViewerExpanded] = useState(false);
   const [viewerClosing, setViewerClosing] = useState(false);
-  const [actionButtonState, setActionButtonState] = useState<"idle" | "hover" | "press">("idle");
   const [dragHintDismissed, setDragHintDismissed] = useState(false);
   const [dragIntroActive, setDragIntroActive] = useState(false);
-  const actionButtonScaleFrameRef = useRef<number | null>(null);
-  const actionButtonScaleValueRef = useRef(-300);
   const dragIntroTimerRef = useRef<number | null>(null);
   const dragGestureRef = useRef<{ pointerId: number; x: number; y: number; dismissed: boolean } | null>(null);
-  const [actionButtonDistortionScale, setActionButtonDistortionScale] = useState(-300);
   const sourceItems = items.length ? items : defaultItems;
   const initialItemIndexRef = useRef<number | null>(null);
   if (initialItemIndexRef.current === null || initialItemIndexRef.current >= sourceItems.length) {
     initialItemIndexRef.current = getRandomInitialItemIndex(sourceItems.length);
   }
   const initialItemIndex = initialItemIndexRef.current;
-  const actionButtonTargetDistortionScale = actionButtonState === "idle" ? -300 : 300;
 
   const dismissDragHint = useCallback(() => {
     setDragHintDismissed(true);
@@ -1469,48 +1610,6 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
 
     scheduleClosingViewerOriginRefresh();
   }, [scheduleClosingViewerOriginRefresh]);
-
-  useEffect(() => {
-    if (actionButtonScaleFrameRef.current) {
-      window.cancelAnimationFrame(actionButtonScaleFrameRef.current);
-      actionButtonScaleFrameRef.current = null;
-    }
-
-    const from = actionButtonScaleValueRef.current;
-    const to = actionButtonTargetDistortionScale;
-
-    if (from === to) {
-      setActionButtonDistortionScale(to);
-      return undefined;
-    }
-
-    const duration = 420;
-    const start = performance.now();
-
-    const tick = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const next = progress === 1 ? to : Math.round((from + (to - from) * eased) * 100) / 100;
-
-      actionButtonScaleValueRef.current = next;
-      setActionButtonDistortionScale(next);
-
-      if (progress < 1) {
-        actionButtonScaleFrameRef.current = window.requestAnimationFrame(tick);
-      } else {
-        actionButtonScaleFrameRef.current = null;
-      }
-    };
-
-    actionButtonScaleFrameRef.current = window.requestAnimationFrame(tick);
-
-    return () => {
-      if (actionButtonScaleFrameRef.current) {
-        window.cancelAnimationFrame(actionButtonScaleFrameRef.current);
-        actionButtonScaleFrameRef.current = null;
-      }
-    };
-  }, [actionButtonTargetDistortionScale]);
 
   useEffect(() => {
     if (!active || dragHintDismissed) {
@@ -1791,42 +1890,11 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
           <p className={`face-description ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}>
             {activeItem.description}
           </p>
-          <button
-            type="button"
-            onClick={openViewer}
-            onPointerEnter={() => setActionButtonState("hover")}
-            onPointerLeave={() => setActionButtonState("idle")}
-            onPointerDown={() => setActionButtonState("press")}
-            onPointerUp={() => setActionButtonState("hover")}
-            onPointerCancel={() => setActionButtonState("idle")}
-            onBlur={() => setActionButtonState("idle")}
-            className={`action-button ${isMoving || isViewerHoldingMenu ? "inactive" : "active"}`}
-            aria-label={`Open ${activeItem.title}`}
-            data-glass-surface="true"
-          >
-            <GlassSurface
-              width="100%"
-              height="100%"
-              borderRadius={999}
-              borderWidth={0.11}
-              brightness={50}
-              opacity={0.93}
-              blur={11}
-              displace={1.1}
-              backgroundOpacity={0.08}
-              saturation={1}
-              distortionScale={actionButtonDistortionScale}
-              redOffset={20}
-              greenOffset={21}
-              blueOffset={20}
-              mixBlendMode="screen"
-              className="action-button-glass"
-            >
-              <span className="action-button-icon" aria-hidden="true">
-                {"\u2197"}
-              </span>
-            </GlassSurface>
-          </button>
+          <InfiniteMenuActionButton
+            title={activeItem.title}
+            inactive={isMoving || isViewerHoldingMenu}
+            onOpen={openViewer}
+          />
           <div className={`drag-affordance ${showDragHint ? "active" : "inactive"}`} aria-hidden="true">
             hold + drag
           </div>
@@ -1867,4 +1935,4 @@ export function InfiniteMenu({ items = [], scale = 1.0, active = true }: Infinit
         )}
     </div>
   );
-}
+});

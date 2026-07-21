@@ -71,10 +71,6 @@ function neonGradientAt(x: number, y: number, width: number, height: number) {
   };
 }
 
-function rgba(r: number, g: number, b: number, a: number) {
-  return `rgba(${clampChannel(r)}, ${clampChannel(g)}, ${clampChannel(b)}, ${Math.max(0, Math.min(1, a))})`;
-}
-
 function mapRange(n: number, start: number, stop: number, start2: number, stop2: number) {
   return ((n - start) / (stop - start)) * (stop2 - start2) + start2;
 }
@@ -103,8 +99,10 @@ class AsciiFilter {
   rows = 1;
   charWidth = 1;
   cellHeight = 1;
-  center = { x: 0, y: 0 };
-  mouse = { x: 0, y: 0 };
+  private cellCharIndexes = new Uint8Array(0);
+  private cellAlphas = new Float32Array(0);
+  private cellChannelAlphas = new Float32Array(0);
+  private cellMainColors: string[] = [];
 
   constructor(renderer: THREE.WebGLRenderer, options: AsciiFilterOptions = {}) {
     this.renderer = renderer;
@@ -131,8 +129,6 @@ class AsciiFilter {
     this.charset =
       options.charset ??
       " .'`^\",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-    this.onMouseMove = this.onMouseMove.bind(this);
-    document.addEventListener("mousemove", this.onMouseMove);
   }
 
   setSize(width: number, height: number) {
@@ -142,8 +138,6 @@ class AsciiFilter {
     this.domElement.width = this.width;
     this.domElement.height = this.height;
     this.reset();
-    this.center = { x: this.width / 2, y: this.height / 2 };
-    this.mouse = { x: this.center.x, y: this.center.y };
   }
 
   reset() {
@@ -158,6 +152,26 @@ class AsciiFilter {
     this.sampleCanvas.height = this.rows;
     this.sampleContext.imageSmoothingEnabled = false;
     this.outputContext.imageSmoothingEnabled = false;
+
+    // Cell grid only changes with size, so scratch buffers and the per-cell
+    // main-layer colors are computed once here instead of every frame.
+    const cellCount = this.cols * this.rows;
+    this.cellCharIndexes = new Uint8Array(cellCount);
+    this.cellAlphas = new Float32Array(cellCount);
+    this.cellChannelAlphas = new Float32Array(cellCount);
+    this.cellMainColors = new Array<string>(cellCount);
+
+    for (let y = 0; y < this.rows; y += 1) {
+      const drawY = y * this.cellHeight;
+      for (let x = 0; x < this.cols; x += 1) {
+        const neon = neonGradientAt(x * this.charWidth, drawY, this.width, this.height);
+        const outR = mixChannel(neon.r, 235, 0.28);
+        const outG = mixChannel(neon.g, 250, 0.24);
+        const outB = mixChannel(neon.b, 238, 0.22);
+        this.cellMainColors[x + y * this.cols] =
+          `rgb(${clampChannel(outR)}, ${clampChannel(outG)}, ${clampChannel(outB)})`;
+      }
+    }
   }
 
   render(scene: THREE.Scene, camera: THREE.Camera) {
@@ -168,53 +182,104 @@ class AsciiFilter {
   }
 
   asciify() {
-    const imageData = this.sampleContext.getImageData(0, 0, this.cols, this.rows).data;
-    this.outputContext.clearRect(0, 0, this.width, this.height);
-    this.outputContext.font = `800 ${this.cellHeight}px ${this.fontFamily}`;
-    this.outputContext.textBaseline = "top";
+    const { cols, rows, charWidth, cellHeight } = this;
+    const cellCount = cols * rows;
+    const imageData = this.sampleContext.getImageData(0, 0, cols, rows).data;
+    const context = this.outputContext;
+    context.clearRect(0, 0, this.width, this.height);
+    context.font = `800 ${cellHeight}px ${this.fontFamily}`;
+    context.textBaseline = "top";
 
-    for (let y = 0; y < this.rows; y += 1) {
-      for (let x = 0; x < this.cols; x += 1) {
-        const index = (x + y * this.cols) * 4;
-        const r = imageData[index];
-        const g = imageData[index + 1];
-        const b = imageData[index + 2];
-        const a = imageData[index + 3];
+    const charset = this.charset;
+    const charsetMax = charset.length - 1;
+    const charIndexes = this.cellCharIndexes;
+    const alphas = this.cellAlphas;
+    const channelAlphas = this.cellChannelAlphas;
 
-        if (a < ASCII_ALPHA_CUTOFF) {
+    // Resolve per-cell glyph and alpha values once, then draw each chromatic
+    // layer in a single pass so the fillStyle string is parsed once per layer
+    // (via globalAlpha) instead of once per cell.
+    for (let cell = 0, pixel = 0; cell < cellCount; cell += 1, pixel += 4) {
+      const a = imageData[pixel + 3];
+      if (a < ASCII_ALPHA_CUTOFF) {
+        alphas[cell] = 0;
+        channelAlphas[cell] = 0;
+        continue;
+      }
+
+      const r = imageData[pixel];
+      const g = imageData[pixel + 1];
+      const b = imageData[pixel + 2];
+      const gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
+      const mixAmount = this.invert ? gray : 1 - gray;
+      charIndexes[cell] = Math.max(0, Math.min(charsetMax, Math.floor(mixAmount * charsetMax)));
+      const alpha = Math.min(1, Math.max(0.5, (a / 255) * 1.18));
+      alphas[cell] = alpha;
+      channelAlphas[cell] = alpha * (0.55 + (Math.max(r, g, b) / 255) * 0.28);
+    }
+
+    context.fillStyle = "rgb(40, 248, 255)";
+    for (let y = 0; y < rows; y += 1) {
+      const rowOffset = y * cols;
+      const drawY = y * cellHeight;
+      for (let x = 0; x < cols; x += 1) {
+        const cell = rowOffset + x;
+        const channelAlpha = channelAlphas[cell];
+        if (channelAlpha === 0) {
           continue;
         }
-
-        const gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
-        const mix = this.invert ? gray : 1 - gray;
-        const charIndex = Math.max(0, Math.min(this.charset.length - 1, Math.floor(mix * (this.charset.length - 1))));
-        const drawX = x * this.charWidth;
-        const drawY = y * this.cellHeight;
-        const alpha = Math.min(1, Math.max(0.5, (a / 255) * 1.18));
-        const neon = neonGradientAt(drawX, drawY, this.width, this.height);
-        const sourceLift = Math.max(r, g, b) / 255;
-        const channelAlpha = alpha * (0.55 + sourceLift * 0.28);
-        this.outputContext.fillStyle = rgba(40, 248, 255, channelAlpha * 0.72);
-        this.outputContext.fillText(this.charset[charIndex], drawX - 1.35, drawY);
-        this.outputContext.fillStyle = rgba(255, 36, 210, channelAlpha * 0.56);
-        this.outputContext.fillText(this.charset[charIndex], drawX + 1.25, drawY + 0.35);
-        this.outputContext.fillStyle = rgba(255, 226, 54, channelAlpha * 0.48);
-        this.outputContext.fillText(this.charset[charIndex], drawX + 0.25, drawY - 0.45);
-        const outR = mixChannel(neon.r, 235, 0.28);
-        const outG = mixChannel(neon.g, 250, 0.24);
-        const outB = mixChannel(neon.b, 238, 0.22);
-        this.outputContext.fillStyle = rgba(outR, outG, outB, alpha * 0.76);
-        this.outputContext.fillText(this.charset[charIndex], drawX, drawY);
+        context.globalAlpha = channelAlpha * 0.72;
+        context.fillText(charset[charIndexes[cell]], x * charWidth - 1.35, drawY);
       }
     }
-  }
 
-  onMouseMove(e: MouseEvent) {
-    this.mouse = { x: e.clientX, y: e.clientY };
-  }
+    context.fillStyle = "rgb(255, 36, 210)";
+    for (let y = 0; y < rows; y += 1) {
+      const rowOffset = y * cols;
+      const drawY = y * cellHeight + 0.35;
+      for (let x = 0; x < cols; x += 1) {
+        const cell = rowOffset + x;
+        const channelAlpha = channelAlphas[cell];
+        if (channelAlpha === 0) {
+          continue;
+        }
+        context.globalAlpha = channelAlpha * 0.56;
+        context.fillText(charset[charIndexes[cell]], x * charWidth + 1.25, drawY);
+      }
+    }
 
-  dispose() {
-    document.removeEventListener("mousemove", this.onMouseMove);
+    context.fillStyle = "rgb(255, 226, 54)";
+    for (let y = 0; y < rows; y += 1) {
+      const rowOffset = y * cols;
+      const drawY = y * cellHeight - 0.45;
+      for (let x = 0; x < cols; x += 1) {
+        const cell = rowOffset + x;
+        const channelAlpha = channelAlphas[cell];
+        if (channelAlpha === 0) {
+          continue;
+        }
+        context.globalAlpha = channelAlpha * 0.48;
+        context.fillText(charset[charIndexes[cell]], x * charWidth + 0.25, drawY);
+      }
+    }
+
+    const mainColors = this.cellMainColors;
+    for (let y = 0; y < rows; y += 1) {
+      const rowOffset = y * cols;
+      const drawY = y * cellHeight;
+      for (let x = 0; x < cols; x += 1) {
+        const cell = rowOffset + x;
+        const alpha = alphas[cell];
+        if (alpha === 0) {
+          continue;
+        }
+        context.fillStyle = mainColors[cell];
+        context.globalAlpha = alpha * 0.76;
+        context.fillText(charset[charIndexes[cell]], x * charWidth, drawY);
+      }
+    }
+
+    context.globalAlpha = 1;
   }
 }
 
@@ -232,6 +297,7 @@ class CanvasText {
   alignMode: "center" | "anchored" | "layout";
   lineXPositions: number[] = [];
   private dirty = true;
+  private converged = false;
 
   constructor(
     text: string,
@@ -281,6 +347,13 @@ class CanvasText {
   }
 
   render() {
+    // Once every line has settled on its target position and no text/anchor
+    // change is pending, the rendered bitmap cannot change — skip the
+    // measure/lerp pass entirely on steady-state frames.
+    if (!this.dirty && this.converged) {
+      return false;
+    }
+
     const lines = this.text.split("\n");
     const anchorLines = this.anchorText.split("\n");
     const nextLineXPositions: number[] = [];
@@ -303,6 +376,7 @@ class CanvasText {
     });
 
     if (!changed) {
+      this.converged = true;
       return false;
     }
 
@@ -317,6 +391,7 @@ class CanvasText {
     });
     this.lineXPositions = nextLineXPositions;
     this.dirty = false;
+    this.converged = false;
     return true;
   }
 
@@ -327,6 +402,7 @@ class CanvasText {
 
     this.text = text;
     this.dirty = true;
+    this.converged = false;
   }
 
   setAnchorText(anchorText: string) {
@@ -336,6 +412,7 @@ class CanvasText {
 
     this.anchorText = anchorText;
     this.dirty = true;
+    this.converged = false;
   }
 
   get texture() {
@@ -578,7 +655,6 @@ class CanvasAscii {
     this.pause();
     this.container.removeEventListener("mousemove", this.onMouseMove);
     this.container.removeEventListener("touchmove", this.onMouseMove);
-    this.filter?.dispose();
     if (this.filter?.domElement.parentNode) {
       this.container.removeChild(this.filter.domElement);
     }
